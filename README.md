@@ -1,10 +1,10 @@
 # Instructions for Use
 
-1. [Get the nPoint LC.400 recognizable as a Virtual COM Port (VCP)](#vcp) on your computer. Do not proceed until this is complete.
+1. [Make the nPoint LC.400 recognizable as a Virtual COM Port (VCP)](#vcp) on your computer. Do not proceed until this is complete.
 <a name="step2"</a>
 2.  Clone the git repo into your MATLAB project `$ git clone https://github.com/cnanders/matlab-npoint.git`
 3. Add the repo to the MATLAB path `addpath('matlab-npoint');`
-4. In MATLAB, there are two ways to access classes within a package
+4. This repo is a namespaced package.  In MATLAB, there are two ways to access classes within a package
     1. Through the full qualified namespace, i.e., `lc400 = npoint.lc400.LC400();`
     2. Alternatively, you can import a package or class, e.g., `import npoint.lc400.LC400` within the scope of a script or function and access the class directly, e.g., `LC400`.  With this approach, you don’t have to use the full qualified name within the scope of the import.
 5. When instantiating the `npoint.lc400.LC400` instance, use the [varargin syntax](https://www.mathworks.com/help/matlab/ref/varargin.html) to pass a property `cPort` with the VCP value you obtained in step 1, e.g., `lc400 = npoint.lc400.LC400('cPort', '/dev/tty.usbserial-7440002A');`
@@ -44,7 +44,7 @@ The output will look something like this.  The **bold** items are the ones corre
 
 If you see them, proceed.  If not, [download the FTDI driver](http://www.ftdichip.com/Drivers/VCP.htm) and try again.  If you still have problems, consult the [FTDI website](http://www.ftdichip.com/Drivers/VCP.htm).
 
-The “dev/tty.usbserial-xxxxxxxA” is the string you pass to the {serial} in MATLAB when creating it.  No go back go [step 2 of the instructions](#step2)
+The “dev/tty.usbserial-xxxxxxxA” is the string you pass to the {serial} in MATLAB when creating it.  Now go back go [step 2 of the instructions](#step2)
 
 ## Windows Users
 
