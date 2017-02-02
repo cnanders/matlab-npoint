@@ -1279,6 +1279,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
         end
         
+        %{
         % Convert a mixed-type value to its 32-bit hex representation.  
         % xVal {mixed mx1} can be:
         %   'float' {double 1x1}, 
@@ -1339,6 +1340,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             
         end
+        %}
         
         
         
