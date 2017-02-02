@@ -1,7 +1,7 @@
-
 # Instructions for Use
 
 1. [Get the nPoint LC.400 recognizable as a Virtual COM Port (VCP)](#vcp) on your computer. Do not proceed until this is complete.
+<a name="step2"</a>
 2.  Clone the git repo into your MATLAB project `$ git clone https://github.com/cnanders/matlab-npoint.git`
 3. Add the repo to the MATLAB path `addpath('matlab-npoint');`
 4. In MATLAB, there are two ways to access classes within a package
@@ -23,7 +23,7 @@ macOS >= 10.9 (Mavericks) ships with included built-in partial support for some 
 
 ### Checking for LC.400 in Terminal
 
-In terminal, you can list all of the available COM ports by name by running:
+Connect a USB cable between your computer and the LC400 and power on the LC400. In terminal, you can list all of the available COM ports by name by running:
 
 `ls  -l /dev/{tty,cu}.*`
 
@@ -44,7 +44,7 @@ The output will look something like this.  The **bold** items are the ones corre
 
 If you see them, proceed.  If not, [download the FTDI driver](http://www.ftdichip.com/Drivers/VCP.htm) and try again.  If you still have problems, consult the [FTDI website](http://www.ftdichip.com/Drivers/VCP.htm).
 
-The “dev/tty.usbserial-xxxxxxxA” is the string you pass to the {serial} in MATLAB when creating it
+The “dev/tty.usbserial-xxxxxxxA” is the string you pass to the {serial} in MATLAB when creating it.  No go back go [step 2 of the instructions](#step2)
 
 ## Windows Users
 
