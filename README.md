@@ -2,8 +2,8 @@
 
 1. [Make the nPoint LC.400 recognizable as a Virtual COM Port (VCP)](#vcp) on your computer. Do not proceed until this is complete.
 <a name="step2"</a>
-2.  Clone the git repo into your MATLAB project `$ git clone https://github.com/cnanders/matlab-npoint.git`
-3. Add the repo to the MATLAB path `addpath('matlab-npoint');`
+2.  Clone the git repo into your MATLAB project `$ git clone https://github.com/cnanders/matlab-npoint-lc400.git`
+3. Add the repo to the MATLAB path `addpath('matlab-npoint-lc400');`
 4. This repo is a namespaced package.  In MATLAB, there are two ways to access classes within a package
     1. Through the full qualified namespace, i.e., `lc400 = npoint.lc400.LC400();`
     2. Alternatively, you can import a package or class, e.g., `import npoint.lc400.LC400` within the scope of a script or function and access the class directly, e.g., `LC400`.  With this approach, you don’t have to use the full qualified name within the scope of the import.
@@ -64,7 +64,7 @@ This repo uses [Hungarian notation](https://github.com/cnanders/matlab-hungarian
     * lib-a
     * lib-b
   * pkgs
-    * matlab-npoint
+    * matlab-npoint-lc400
       * +noint
 	* other-a
       * +other-a
