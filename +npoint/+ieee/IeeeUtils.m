@@ -1,4 +1,4 @@
-classdef Utils
+classdef IeeeUtils
     
     % Helper functions to convert to and from IEEE.754 64-bit and 32-bit
     % hexadecimal strings and floating point numbers
@@ -86,14 +86,14 @@ classdef Utils
         
         function y = hex32ToNum(x)
             
-            y = ieee.Utils.hex32ToNumMulti(x);
+            y = npoint.ieee.IeeeUtils.hex32ToNumMulti(x);
             return;
             
             % x: 32bit hex string
             % y: floating point value
 
             % unpack the bits
-            b = ieee.Utils.hex2bin(x);
+            b = npoint.ieee.IeeeUtils.hex2bin(x);
             s = b(1);
             e = b(2:9);
             f = b(10:32);
@@ -114,7 +114,7 @@ classdef Utils
         % @return {double mx1} y - single-precision floatint point
         function y = hex32ToNumMulti(x)
             
-            b = ieee.Utils.hex2bin(x);
+            b = npoint.ieee.IeeeUtils.hex2bin(x);
            
             % sign, exponent, fraction
             s = b(:, 1);
@@ -149,7 +149,7 @@ classdef Utils
             % old function for historical purposes (I think it is a little
             % easier to read the single
             
-            cIeee32Hex = ieee.Utils.numToHex32Multi(x);
+            cIeee32Hex = npoint.ieee.IeeeUtils.numToHex32Multi(x);
             return;
                         
 
@@ -157,12 +157,12 @@ classdef Utils
             % rather than construct the whole thing from scratch.
             
             % Get 64-bit hex using built-in MATLAB
-            cIeee64Hex = ieee.Utils.numToHex64(x);
+            cIeee64Hex = npoint.ieee.IeeeUtils.numToHex64(x);
             
 
             % Convert to binary, extract 64-bit sign, exponent, fraction
             % (one for each row / value)
-            cIeee64Bin = ieee.Utils.hex2bin(cIeee64Hex);
+            cIeee64Bin = npoint.ieee.IeeeUtils.hex2bin(cIeee64Hex);
             cIeee64SignBin = cIeee64Bin(1);
             cIeee64ExpBin = cIeee64Bin(2:12);
             cIeee64FracBin = cIeee64Bin(13:64);
@@ -200,7 +200,7 @@ classdef Utils
             
             % Assemble IEEE.754 32-bit binary representation
             cIeee32Bin = [cIeee32SignBin cIeee32ExpBin cIeee32FracBin];
-            cIeee32Hex = ieee.Utils.bin2hex(cIeee32Bin, 8);
+            cIeee32Hex = npoint.ieee.IeeeUtils.bin2hex(cIeee32Bin, 8);
             
         end
         
@@ -213,12 +213,12 @@ classdef Utils
             % rather than construct the whole thing from scratch.
             
             % Get 64-bit hex using built-in MATLAB
-            cIeee64Hex = ieee.Utils.numToHex64(x);
+            cIeee64Hex = npoint.ieee.IeeeUtils.numToHex64(x);
             
             % Convert to binary, extract 64-bit sign, exponent, fraction
             % (one for each row / value)
             
-            cIeee64Bin = ieee.Utils.hex2bin(cIeee64Hex);
+            cIeee64Bin = npoint.ieee.IeeeUtils.hex2bin(cIeee64Hex);
             cIeee64SignBin = cIeee64Bin(:, 1);
             cIeee64ExpBin = cIeee64Bin(:, 2:12);
             cIeee64FracBin = cIeee64Bin(:, 13:64);
@@ -265,7 +265,7 @@ classdef Utils
             cIeee32Bin = [cIeee64SignBin cIeee32ExpBin cIeee32FracBin];
             
             % Convert to hex
-            cIeee32Hex = ieee.Utils.bin2hex(cIeee32Bin, 8);
+            cIeee32Hex = npoint.ieee.IeeeUtils.bin2hex(cIeee32Bin, 8);
             
             
         end

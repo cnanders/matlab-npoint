@@ -1,4 +1,4 @@
-classdef Utils
+classdef HexUtils
     
     % Helper functions to convert to and from hex strings encoded with
     % the IEEE.754 32 bit floating point

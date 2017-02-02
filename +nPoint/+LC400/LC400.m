@@ -1,7 +1,6 @@
-classdef LC400 < nPoint.LC400.AbstractLC400
+classdef LC400 < npoint.lc400.AbstractLC400
     
-    % @requires hex.Utils
-    % @requires ieee.Utils
+    
     
     % Several methods below have a paramater cDataType that indicates the
     % type of data being read from or written to the hardware.  Different
@@ -219,13 +218,16 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         % @param {uint8 1x1} channel
         function l = getWavetableEnable(this, u8Ch)
-            cAddr = hex.Utils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable)
+            import npoint.hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable);
             l = this.readSingle(cAddr, 'uint32');
         end
         
         % @param {uint8 1x1} channel
         function l = getWavetableActive(this, u8Ch)
-            cAddr = hex.Utils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive)
+            
+            import npoint.hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive);
             l = this.readSingle(cAddr, 'uint32');
         end
         
@@ -235,7 +237,7 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         % this.GAIN_INTEGRAL
         % this.GAIN_DIFFERENTIAL
         function d = getGain(this, u8Ch, cProp) 
-            
+            import npoint.hex.HexUtils
             switch cProp
                 case this.GAIN_PROPORTIONAL
                     cOffset = this.offsetProportionalGain;
@@ -244,7 +246,7 @@ classdef LC400 < nPoint.LC400.AbstractLC400
                 case this.GAIN_DIFFERENTIAL
                     cOffset = this.offsetDifferentialGain;
             end
-            cAddr = hex.Utils.add(this.getBaseAddr(u8Ch), cOffset);
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cOffset);
             d = this.readSingle(cAddr, 'float');
         end
         
@@ -261,8 +263,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         % this.MONITOR_SCALE
         function d = getFloatValueFromString(this, u8Ch, cProp)
             
-            
-            cAddr = hex.Utils.add(this.getBaseAddr(u8Ch), cHexOffset);
+            import npoint.hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cHexOffset);
             d = this.readSingle(cAddr, 'f');
         end
         
@@ -296,7 +298,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         % 277 microns: 1,048,575 20 bit counts divided by 277 = 3,785.47
         % "counts per micron".
         function d = getRange(this, u8Ch)
-            cAddr = hex.Utils.add(this.getBaseAddr(u8Ch), this.offsetRange);
+            import npoint.hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetRange);
             d = this.readSingle(cAddr, 'uint32');
         end
         
@@ -316,12 +319,14 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         % (2^20 - 2)/2 === 524287 and rounding the result to nearest int. 
         function setWavetable(this, u8Ch, i32Vals)
             
+            import npoint.hex.HexUtils
+            
             % Write wavetable            
             cAddr = this.getBaseWaveAddr(u8Ch);
             this.writeArray(cAddr, i32Vals);
             
             % Set end of wavetable index
-            cAddr = hex.Utils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEndIndex);
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEndIndex);
             this.writeSingle(cAddr, uint32(length(i32Vals)));
         
         end
@@ -329,7 +334,16 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         % @param {uint8 1x1} channel
         % @param {logical 1x1} 
         function setWavetableEnable(this, u8Ch, l)
-            cAddr = hex.Utils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable);
+            import npoint.hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable);
+            this.writeSingle(cAddr, uint8(l));
+        end
+        
+        % @param {uint8 1x1} channel
+        % @param {logical 1x1} 
+        function setWavetableActive(this, u8Ch, l)
+            import npoint.hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive);
             this.writeSingle(cAddr, uint8(l));
         end
         
@@ -337,10 +351,11 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         % @param {logical 1x1} true to enable
         function setTwoWavetablesActive(this, l) 
             
-            cAddr = hex.Utils.add(this.addrCh1Base, this.offsetWavetableActive);
+            import npoint.hex.HexUtils
+            cAddr = HexUtils.add(this.addrCh1Base, this.offsetWavetableActive);
             this.writeSingle(cAddr, uint8(l));
             
-            cAddr = hex.Utils.add(this.addrCh2Base, this.offsetWavetableActive);
+            cAddr = HexUtils.add(this.addrCh2Base, this.offsetWavetableActive);
             this.writeSingle(cAddr, uint8(l));
         
         end
@@ -365,6 +380,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         function i32 = recordRaw(this, u32Num)
             
+            import npoint.hex.HexUtils
+            
             % Set number of samples to record
             this.writeSingle(...
                 this.addrNumSamplesToRecord, ...
@@ -375,23 +392,23 @@ classdef LC400 < nPoint.LC400.AbstractLC400
             % Ch 1 command
             this.writeSingle(...
                 this.addrRecordPointer1, ...
-                hex.Utils.add(this.addrCh1Base, this.offsetControlLoopInput) ...
+                HexUtils.add(this.addrCh1Base, this.offsetControlLoopInput) ...
             );
             % Ch 1 sensor
             this.writeSingle(...
                 this.addrRecordPointer2, ...
-                hex.Utils.add(this.addrCh1Base, this.offsetDigitalSensorReading) ...
+                HexUtils.add(this.addrCh1Base, this.offsetDigitalSensorReading) ...
             );
         
             % Ch 2 command
             this.writeSingle(...
                 this.addrRecordPointer3, ...
-                hex.Utils.add(this.addrCh2Base, this.offsetControlLoopInput) ...
+                HexUtils.add(this.addrCh2Base, this.offsetControlLoopInput) ...
             );
             % Ch 2 sensor
             this.writeSingle(...
                 this.addrRecordPointer4, ...
-                hex.Utils.add(this.addrCh2Base, this.offsetDigitalSensorReading) ...
+                HexUtils.add(this.addrCh2Base, this.offsetDigitalSensorReading) ...
             ); 
       
             
@@ -629,8 +646,10 @@ classdef LC400 < nPoint.LC400.AbstractLC400
 
         function d = readArray(this, cAddrHex32, u32Num, cType)
             
+            import npoint.hex.HexUtils
+            
             % Convert address to little endian
-            cAddrHex32 = hex.Utils.changeEndianness32(cAddrHex32);
+            cAddrHex32 = HexUtils.changeEndianness32(cAddrHex32);
             
             % Convert num reads to 32-bit hex.  The trick to doing this is
             % to add the result of hex2dec to '00000000', so we get a full
@@ -638,7 +657,7 @@ classdef LC400 < nPoint.LC400.AbstractLC400
             cNumHex32 = dec2hex(u32Num, 8);
             
             % Make little endian
-            cNumHex32 = hex.Utils.changeEndianness32(cNumHex32);
+            cNumHex32 = HexUtils.changeEndianness32(cNumHex32);
             
             
             cCmdHex = 'A4';
@@ -881,6 +900,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         function writeSingle(this, cAddrHex, xValues, cTypes)
             
+            import npoint.hex.HexUtils
+            
             % Loop through values, convert to hex representation (big
             % endian)
             
@@ -891,10 +912,10 @@ classdef LC400 < nPoint.LC400.AbstractLC400
                 % cValHex = this.valToHex32(xValues(n, :), cTypes(n, :));
                                 
                 % Convert hex representation of value to little endian
-                cValHexLE = hex.Utils.changeEndianness32(cValHex);
+                cValHexLE = HexUtils.changeEndianness32(cValHex);
                 
                 % Convert address to little endian
-                cAddrHexLE = hex.Utils.changeEndianness32(cAddrHex);
+                cAddrHexLE = HexUtils.changeEndianness32(cAddrHex);
                 
                 % Create commnad string
                 
@@ -929,6 +950,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         function writeArray(this, cAddrHex, xValues)
             
+            import npoint.hex.HexUtils
+            
             % Loop through values, convert to hex representation (big
             % endian)
             
@@ -941,13 +964,13 @@ classdef LC400 < nPoint.LC400.AbstractLC400
                 % cValHex = this.valToHex32(xValues(n, :), cType);
                 
                 % Convert hex representation of value to little endian
-                cValHexLE = hex.Utils.changeEndianness32(cValHex);
+                cValHexLE = HexUtils.changeEndianness32(cValHex);
                 
                 if n == 1
                     % First write
                     
                     % Convert address to little endian
-                    cAddrHexLE = hex.Utils.changeEndianness32(cAddrHex);
+                    cAddrHexLE = HexUtils.changeEndianness32(cAddrHex);
 
                     % Create commnad string
                     cCmdHex = 'A2';
@@ -988,6 +1011,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         %{
         function writeSingle(this, addr, values, types)
+        
+            import npoint.ieee.IeeeUtils
             % write to a DSP address
             v2 = [];
             [m,n] = size(addr);
@@ -996,7 +1021,7 @@ classdef LC400 < nPoint.LC400.AbstractLC400
                 if (types(j) == 'f')     
                     % passsed in float (single precision, 32-bit), 
                     % Need to convert it to IEEE 32 hexadecimal
-                    v = ieee.Utils.numToHex32(values(j));
+                    v = IeeeUtils.numToHex32(values(j));
                 elseif (types(j) == 'h') 
                     % passed in hex - no conversion needed
                     v = values(j,:);
@@ -1047,7 +1072,7 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         %{
         function d = readWave(this, u32Num)
             
-                       
+            import npoint.hex.HexUtils          
             % Generate a list of memory addresses
             
             cAddr = repmat(char(0), u32Num, 8);
@@ -1059,7 +1084,7 @@ classdef LC400 < nPoint.LC400.AbstractLC400
                 % read comand
                 
                 offset = (n - 1) * 4;
-                cAddr(n, :) = hex.Utils.add(this.getBaseWaveAddr(1), dec2hex(offset));
+                cAddr(n, :) = HexUtils.add(this.getBaseWaveAddr(1), dec2hex(offset));
                 cFormat(n) = 'i'; 
             end
             
@@ -1082,6 +1107,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         % would fill the input buffer if put into a single readArray call
         
         function d = readArrayLong(this, cAddrHex32, u32Num, cType)
+            
+            import npoint.hex.HexUtils
             
             this.msg('readArrayLong()');
             
@@ -1122,7 +1149,7 @@ classdef LC400 < nPoint.LC400.AbstractLC400
                 
                 % Offset the start memory address by 4 per read
                 dAddrOffset = (n - 1) * 4 * dMaxReads;
-                cAddr = hex.Utils.add(cAddrHex32, dec2hex(dAddrOffset));
+                cAddr = HexUtils.add(cAddrHex32, dec2hex(dAddrOffset));
                 
                 % Issue readArray
                 dResult = this.readArray(cAddr, dReads, cType);
@@ -1142,11 +1169,13 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         function d = hex32Convert(this, cHex, cType)
             
+            import npoint.hex.HexUtils
+            import npoint.ieee.IeeeUtils
             switch cType
                 case 'float' % The hex is a IEEE 32-bit hexadecimal format
-                    d = ieee.Utils.hex32ToNum(cHex);
+                    d = IeeeUtils.hex32ToNum(cHex);
                 case 'int32' % signed int.  The hex is big endian. Use hex2dec to con
-                    d = hex.Utils.hex32ToInt(cHex);
+                    d = HexUtils.hex32ToInt(cHex);
                     if (d > 2^31)
                        d = -(2^32 - d);
                     end
@@ -1171,9 +1200,11 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         function d = convertHex32(this, cHex, cType)
             
+            import npoint.ieee.IeeeUtils
+            
             switch cType
                 case 'float' % The hex is a IEEE 32-bit hexadecimal format
-                    d = ieee.Utils.hex32ToNumMulti(cHex);
+                    d = IeeeUtils.hex32ToNumMulti(cHex);
                 case 'int20'
                     % signed 20-bit int
                     d = hex2dec(cHex);
@@ -1211,10 +1242,12 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         function cValHex = castToHex32(this, xVal)
         
+            import npoint.ieee.IeeeUtils
+            
             switch class(xVal)
                 case {'single', 'double'}
                     % Need to convert it to IEEE 32 hex representation
-                    cValHex = ieee.Utils.numToHex32(xVal);
+                    cValHex = IeeeUtils.numToHex32(xVal);
                 case {'uint8', 'uint16', 'uint32'}
                     % Unsigned 8,16,32-bit int, convert to 8-char hex string
                     cValHex = dec2hex(xVal, 8);
@@ -1257,12 +1290,12 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         
         function cValHex = valToHex32(this, xVal, cType)
             
-            
+            import npoint.ieee.IeeeUtils
             switch cType
                 case 'float'
                     % Passsed in float (single precision, 32-bit), 
                     % Need to convert it to IEEE 32 hex representation
-                    cValHex = ieee.Utils.numToHex32(xVal);
+                    cValHex = IeeeUtils.numToHex32(xVal);
                 case 'uint32'
                     % Unsigned 32-bit int, convert to 8-char hex string
                     cValHex = dec2hex(xVal, 8);
@@ -1312,6 +1345,8 @@ classdef LC400 < nPoint.LC400.AbstractLC400
         function msg(this, cMsg)
             fprintf('%s\n', cMsg);
         end
+        
+        
 
     end
     
