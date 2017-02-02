@@ -1,6 +1,6 @@
 [cDirThis, cName, cExt] = fileparts(mfilename('fullpath'));
 
-% Add npoint packate
+% Add npoint package
 addpath(genpath(fullfile(cDirThis, '..')));
 
 lc400 = npoint.lc400.LC400();

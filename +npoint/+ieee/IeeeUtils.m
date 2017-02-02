@@ -86,14 +86,16 @@ classdef IeeeUtils
         
         function y = hex32ToNum(x)
             
-            y = npoint.ieee.IeeeUtils.hex32ToNumMulti(x);
+            import npoint.ieee.IeeeUtils
+            
+            y = IeeeUtils.hex32ToNumMulti(x);
             return;
             
             % x: 32bit hex string
             % y: floating point value
 
             % unpack the bits
-            b = npoint.ieee.IeeeUtils.hex2bin(x);
+            b = npoint.hex.HexUtils.hex2bin(x);
             s = b(1);
             e = b(2:9);
             f = b(10:32);
@@ -114,7 +116,7 @@ classdef IeeeUtils
         % @return {double mx1} y - single-precision floatint point
         function y = hex32ToNumMulti(x)
             
-            b = npoint.ieee.IeeeUtils.hex2bin(x);
+            b = npoint.hex.HexUtils.hex2bin(x);
            
             % sign, exponent, fraction
             s = b(:, 1);
@@ -144,25 +146,27 @@ classdef IeeeUtils
         
         function cIeee32Hex = numToHex32(x)
             
-                        
+            import npoint.ieee.IeeeUtils
+            
             % Going to switch to using numToHex32Multi but preserving this
             % old function for historical purposes (I think it is a little
             % easier to read the single
             
-            cIeee32Hex = npoint.ieee.IeeeUtils.numToHex32Multi(x);
+            cIeee32Hex = IeeeUtils.numToHex32Multi(x);
             return;
-                        
-
+              
+            
+            import npoint.hex.HexUtils
             % easier to convert to the 64bit version then back to the 32bit version
             % rather than construct the whole thing from scratch.
             
             % Get 64-bit hex using built-in MATLAB
-            cIeee64Hex = npoint.ieee.IeeeUtils.numToHex64(x);
+            cIeee64Hex = IeeeUtils.numToHex64(x);
             
 
             % Convert to binary, extract 64-bit sign, exponent, fraction
             % (one for each row / value)
-            cIeee64Bin = npoint.ieee.IeeeUtils.hex2bin(cIeee64Hex);
+            cIeee64Bin = npoint.hex.HexUtils.hex2bin(cIeee64Hex);
             cIeee64SignBin = cIeee64Bin(1);
             cIeee64ExpBin = cIeee64Bin(2:12);
             cIeee64FracBin = cIeee64Bin(13:64);
@@ -200,7 +204,7 @@ classdef IeeeUtils
             
             % Assemble IEEE.754 32-bit binary representation
             cIeee32Bin = [cIeee32SignBin cIeee32ExpBin cIeee32FracBin];
-            cIeee32Hex = npoint.ieee.IeeeUtils.bin2hex(cIeee32Bin, 8);
+            cIeee32Hex = npoint.hex.HexUtils.hex2bin(cIeee32Bin, 8);
             
         end
         
@@ -208,17 +212,19 @@ classdef IeeeUtils
         % point numbers
         function cIeee32Hex = numToHex32Multi(x)
             
+            import npoint.ieee.IeeeUtils
+            import npoint.hex.HexUtils
             
             % Easier to convert to the 64bit version then back to the 32bit version
             % rather than construct the whole thing from scratch.
             
             % Get 64-bit hex using built-in MATLAB
-            cIeee64Hex = npoint.ieee.IeeeUtils.numToHex64(x);
+            cIeee64Hex = IeeeUtils.numToHex64(x);
             
             % Convert to binary, extract 64-bit sign, exponent, fraction
             % (one for each row / value)
             
-            cIeee64Bin = npoint.ieee.IeeeUtils.hex2bin(cIeee64Hex);
+            cIeee64Bin = HexUtils.hex2bin(cIeee64Hex);
             cIeee64SignBin = cIeee64Bin(:, 1);
             cIeee64ExpBin = cIeee64Bin(:, 2:12);
             cIeee64FracBin = cIeee64Bin(:, 13:64);
@@ -265,42 +271,13 @@ classdef IeeeUtils
             cIeee32Bin = [cIeee64SignBin cIeee32ExpBin cIeee32FracBin];
             
             % Convert to hex
-            cIeee32Hex = npoint.ieee.IeeeUtils.bin2hex(cIeee32Bin, 8);
+            cIeee32Hex = HexUtils.hex2bin(cIeee32Bin, 8);
             
             
         end
 
         
-        % Convert a hex string to a binary string representation
-        % @param {char 1xm} cHex - m-character hex string (big endian)
-        % @param {int8 1x1} [i8Bits = m*4] - the number of bits in the output
-        % @param {char 1xi8Bits} y - binary string (big endian)
         
-        function y = hex2bin(c, i8Bits)
-            
-            if nargin == 1
-                i8Bits = length(c) * 4;
-            end
-                        
-            % Convert from hex representation to integer representation
-            yInt = hex2dec(c);
-            % Convert from integer representation to binary representation,
-            % forcing 
-            y = dec2bin(yInt, i8Bits);
-        end
-        
-        % Convert a binary string to a hex string.  
-        % @param {char 1xm} x - binary string (big endian)
-        % @param {int8 1x1} [i8Num = length(c)] - the number of hex characters in the output
-        
-        function cHex = bin2hex(cBin, i8Num)
-            
-            if nargin == 1
-                i8Num = ceil(length(cBin)/4);
-            end
-            iVal = bin2dec(cBin);
-            cHex = dec2hex(iVal, i8Num);
-        end
         
         
     end
