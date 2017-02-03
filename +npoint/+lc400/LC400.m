@@ -321,13 +321,19 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             import npoint.hex.HexUtils
             
+            [dRows, dCols] = size(i32Vals);
+            if dCols > 1
+                this.msg('setWavetable() MUST pass in size (nx1) not (1xn) array');
+            end
+            
             % Write wavetable            
             cAddr = this.getBaseWaveAddr(u8Ch);
             this.writeArray(cAddr, i32Vals);
             
-            % Set end of wavetable index
+            % Set end of wavetable index.
+            % Needs to be length - 1
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEndIndex);
-            this.writeSingle(cAddr, uint32(length(i32Vals)));
+            this.writeSingle(cAddr, uint32(length(i32Vals) - 1));
         
         end
         
@@ -957,15 +963,16 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             this.msg('writeArray() writing ...');
             
+            % Cast xValues to hex
+            cValHex = this.castToHex32(xValues);
+            % cValHex = this.valToHex32(xValues(n, :), cType);
+
+            % Convert hex representation of value to little endian
+            cValHexLE = HexUtils.changeEndianness32(cValHex);
+            
             [rows, cols] = size(xValues);
             for n = 1 : rows
-                
-                cValHex = this.castToHex32(xValues(n, :));
-                % cValHex = this.valToHex32(xValues(n, :), cType);
-                
-                % Convert hex representation of value to little endian
-                cValHexLE = HexUtils.changeEndianness32(cValHex);
-                
+                                
                 if n == 1
                     % First write
                     
@@ -975,7 +982,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     % Create commnad string
                     cCmdHex = 'A2';
                     cStopHex = '55';
-                    cDataHex = [cCmdHex cAddrHexLE cValHexLE cStopHex];
+                    cDataHex = [cCmdHex cAddrHexLE cValHexLE(n, :) cStopHex];
                     
                     
                 else
@@ -984,8 +991,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     % Create commnad string
                     cCmdHex = 'A3';
                     cStopHex = '55';
-                    cDataHex = [cCmdHex cValHexLE cStopHex];
-
+                    cDataHex = [cCmdHex cValHexLE(n, :) cStopHex];
                     
                 end
                 
@@ -1259,10 +1265,12 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     % {int32}, that type doesn't support values > 2^31 - 1,
                     % which is what we need to do
                     
-                    dVal = double(xVal);                    
-                    if dVal < 0
-                        dVal = 2^32 + dVal; 
-                    end
+                    dVal = double(xVal);
+                    
+                    idx = find(dVal < 0);
+                    dVal(idx) = 2^32 + dVal(idx);
+                    
+                   
                     cValHex = dec2hex(dVal, 8);
                     
                 case 'char'

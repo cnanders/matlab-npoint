@@ -28,7 +28,7 @@ classdef HexUtils
         
         % @param 8-character 32-big hex string
         function c = changeEndianness32(c)
-            c = c([7 8 5 6 3 4 1 2]);
+            c = c(:, [7 8 5 6 3 4 1 2]);
         end
         
         % Convet big endian hex string to base10 integer representation
