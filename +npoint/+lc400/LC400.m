@@ -357,12 +357,67 @@ classdef LC400 < npoint.lc400.AbstractLC400
         % @param {logical 1x1} true to enable
         function setTwoWavetablesActive(this, l) 
             
+            this.msg('setTwoWavetablesActive()');
+            
             import npoint.hex.HexUtils
+            
+            
+            % Set "Wavetable Index" to zero for both channels prior
+            % to restarting the waveform
+            
+            cAddr1 = HexUtils.add(this.addrCh1Base, this.offsetWavetableIndex);
+            cAddr2 = HexUtils.add(this.addrCh2Base, this.offsetWavetableIndex);
+            
+            this.writeSingle(cAddr1, uint8(0));
+            this.writeSingle(cAddr2, uint8(0));
+            
+            % Set both to active
+            
+            % OLD
+            %{
             cAddr = HexUtils.add(this.addrCh1Base, this.offsetWavetableActive);
             this.writeSingle(cAddr, uint8(l));
             
             cAddr = HexUtils.add(this.addrCh2Base, this.offsetWavetableActive);
             this.writeSingle(cAddr, uint8(l));
+            %}
+            
+            % NEW
+            % Use a single fwrite stream with both commands so they are
+            % processed on same clock cycle on the LC400
+            
+            cAddr1Hex = HexUtils.add(this.addrCh1Base, this.offsetWavetableActive);
+            cAddr2Hex = HexUtils.add(this.addrCh2Base, this.offsetWavetableActive);
+            
+            cAddr1HexLE = HexUtils.changeEndianness32(cAddr1Hex);
+            cAddr2HexLE = HexUtils.changeEndianness32(cAddr2Hex);
+            
+            cValHex = this.castToHex32(uint32(l));
+            cValHexLE = HexUtils.changeEndianness32(cValHex);
+
+            % Create commnad string
+
+            cCmdHex = 'A2';
+            cStopHex = '55';
+
+            cDataHex = [...
+                cCmdHex cAddr1HexLE cValHexLE cStopHex ...
+                cCmdHex cAddr2HexLE cValHexLE cStopHex];
+
+            % Convert to a column list of hex bytes
+            % 1-byte start
+            % 4-bytes address litte endian
+            % 4-bytes value little endian
+            % 1-byte end
+            L = length(cDataHex);
+            cDataHex = reshape(cDataHex, 2, L/2)'
+
+            % Convert each byte from hex representation to int
+            % representation
+            cDataInt = hex2dec(cDataHex);
+
+            % Issue command
+            fwrite(this.s, cDataInt);
         
         end
         
@@ -928,7 +983,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 cCmdHex = 'A2';
                 cStopHex = '55';
                 
-                cDataHex = [cCmdHex cAddrHexLE cValHexLE cStopHex]
+                cDataHex = [cCmdHex cAddrHexLE cValHexLE cStopHex];
                 
                 % Convert to a column list of 10 hex bytes
                 % 1-byte start
@@ -1116,7 +1171,6 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             import npoint.hex.HexUtils
             
-            this.msg('readArrayLong()');
             
             % Based on the size of the input buffer, there is a maximum
             % number of reads readArray can do and not overfill the inut
@@ -1132,12 +1186,27 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             dMaxReads = floor((this.s.InputBuffer - 2 - 4)/4);
             
+            
             % if u32Num > maxReads perform ceil(u32Num/maxReads)
             % readArray() calls, appending
             
             d = zeros(1, u32Num);
             
-            dNumReadArrays = ceil(u32Num/dMaxReads);
+            % Need to be careful here since we would be dividing an uint by
+            % a double which keeps the type uint and would never get us the
+            % fraction we want.  E.g., uint8(2)/1.1 = 2 {uint8} where as
+            % 2/1.1 = 1.81 {double}
+            
+            dNum = double(u32Num);
+            dNumReadArrays = ceil(dNum/dMaxReads);
+            
+            cMsg = sprintf(...
+                'readArrayLong() max reads per readArray = %1.0f.  Requires %1.0f calls', ...
+                dMaxReads, ...
+                dNumReadArrays ...
+            );
+            this.msg(cMsg);
+                        
             for n = 1 : dNumReadArrays
                 
                 if n < dNumReadArrays
