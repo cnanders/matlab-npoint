@@ -54,7 +54,7 @@ I’m on macOS and didn’t go through the Windows process.  But it is similar. 
 
 # Hungarian Notation
 
-This repo uses [Hungarian notation](https://github.com/cnanders/matlab-hungarian) for variable names.  
+This repo uses [MATLAB Hungarian notation](https://github.com/cnanders/matlab-hungarian) for variable names.  
 
 # Recommended Project Structure
 
