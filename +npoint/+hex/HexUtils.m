@@ -1,13 +1,5 @@
 classdef HexUtils
-    
-    % Helper functions to convert to and from hex strings encoded with
-    % the IEEE.754 32 bit floating point
-    % format.  The bin2dec, dec2bin and num2hex are built-in Matlab
-    % functions, the others are listed here...
-    %
-    % These methods were coded by Adam Frost from nPoint
-
-        
+     
     properties (Constant)
         
         
