@@ -19,8 +19,9 @@ You will use the serial() communication protocol in MATLAB to talk to the FTDI c
 
 ## macOS Users
 
-macOS >= 10.9 (Mavericks) ships with included built-in partial support for some FTDI devices in VCP mode.  macOS >= 10.11 (El Capitan) have really good support.  Before you [download the FTDI driver](http://www.ftdichip.com/Drivers/VCP.htm) and install it, see if your OS already recognizes the LC400.
+macOS >= 10.9 (Mavericks) ships with included built-in partial support for some FTDI devices in VCP mode.  macOS >= 10.11 (El Capitan) has even better support.  Before you [download the FTDI driver](http://www.ftdichip.com/Drivers/VCP.htm) and install it, [check for the LC.400 in Terminal](#terminal) to see your OS already recognizes the LC400.
 
+<a name="terminal"></a>
 ### Checking for LC.400 in Terminal
 
 Connect a USB cable between your computer and the LC400 and power on the LC400. In terminal, you can list all of the available COM ports by name by running:
