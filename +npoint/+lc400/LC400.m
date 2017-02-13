@@ -178,7 +178,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             this.s.BaudRate = this.u16BaudRate;
             this.s.InputBufferSize = this.u16InputBufferSize;
-            
+            this.s.OutputBufferSize = this.u16OutputBufferSize;
         end
         
         function clearBytesAvailable(this)
@@ -339,7 +339,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             % Write wavetable            
             cAddr = this.getBaseWaveAddr(u8Ch);
-            this.writeArray(cAddr, i32Vals);
+            this.writeArrayLong(cAddr, i32Vals);
             
             % Set end of wavetable index.
             % Needs to be length - 1
@@ -421,7 +421,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             % 4-bytes value little endian
             % 1-byte end
             L = length(cDataHex);
-            cDataHex = reshape(cDataHex, 2, L/2)'
+            cDataHex = reshape(cDataHex, 2, L/2)';
 
             % Convert each byte from hex representation to int
             % representation
@@ -1017,6 +1017,98 @@ classdef LC400 < npoint.lc400.AbstractLC400
             end
         end
         
+        
+        % Wrapper around writeArray() for writes that are so big that they
+        % would fill the output buffer if put into a single writeArray call
+        
+        function writeArrayLong(this, cAddrHex, xValues)
+            
+            import npoint.hex.HexUtils
+
+            % Based on the size of the output buffer, there is a maximum
+            % number of write + write next commands the output buffer can
+            % support 
+            %
+            % The write stream contains 10 bytes
+            %   one byte for command, 
+            %   four bytes for start memory address,
+            %   four bytes per value,
+            %   one byte for stop
+            % 
+            % The write next stream contains 6 bytes
+            %   one byte for command
+            %   four bytes per value
+            %   one byte for stop
+            
+            % To compute writes per writeArray(), subtract 10 from the
+            % output buffer (for the original "write" command), divide the
+            % result by 6 bytes per "write next", then add 1 back for the
+            % original "write"
+            
+            dNumMax = floor((this.s.OutputBuffer - 10)/6) + 1;
+            dNumWriteArrays = ceil(length(xValues)/dNumMax);
+            cMethod = 'writeArrayLong()';
+            
+            
+            cMsg = sprintf(...
+                '%s s.OutputBuffer is %1.0f bytes ', ...
+                cMethod,...
+                this.s.OutputBuffer ...
+            );            
+            this.msg(cMsg);
+            
+            cMsg = sprintf(...
+                '%s Max writes of ouput buffer = %1.0f ', ...
+                cMethod, ...
+                dNumMax ...
+            );            
+            this.msg(cMsg);
+            
+            cMsg = sprintf(...
+                '%s 10 bytes/write * 1 + 6 bytes/writenext * %1.0f = %1.0f bytes ', ...
+                cMethod, ...
+                dNumMax - 1, ...
+                10 + (dNumMax - 1)*6 ...
+            );            
+            this.msg(cMsg);
+            
+            
+            cMsg = sprintf(...
+                '%s Requires %1.0f calls to writeArray()', ...
+                cMethod, ...
+                dNumWriteArrays ...
+            );            
+            this.msg(cMsg);
+                        
+            for n = 1 : dNumWriteArrays
+                
+                % Compute index of xValues
+                if n < dNumWriteArrays
+                    dNum = dNumMax;
+                    dStart = 1 + (n - 1) * dNum;
+                    dEnd = n * dNum;
+                else
+                    dNum = length(xValues) - (n - 1) * dNumMax;
+                    dStart = 1 + (n - 1)*dNumMax;
+                    dEnd = dStart + dNum - 1;
+                end
+                
+                % With each call to writeArray, need to offset the start
+                % memory address by 4 per value
+                 
+                dAddrOffset = (n - 1) * 4 * dNumMax;
+                cAddr = HexUtils.add(cAddrHex, dec2hex(dAddrOffset));
+                
+                % Issue writeArray
+                this.writeArray(cAddr, xValues(dStart: dEnd));
+                
+            end
+            
+            
+            
+        end
+        
+        
         % @param {char 1x8} cAddrHex
         % @param {mixed mx1} xValues - type can be: 
         % double, single (uses IEEE.754)
@@ -1030,7 +1122,13 @@ classdef LC400 < npoint.lc400.AbstractLC400
             % Loop through values, convert to hex representation (big
             % endian)
             
-            this.msg('writeArray() writing ...');
+            cMsg = sprintf(...
+                'writeArray() writing %1.0f values to %s...', ...
+                length(xValues), ...
+                cAddrHex ...
+            );
+        
+            this.msg(cMsg);
             
             % Cast xValues to hex
             cValHex = this.castToHex32(xValues);
@@ -1038,6 +1136,12 @@ classdef LC400 < npoint.lc400.AbstractLC400
 
             % Convert hex representation of value to little endian
             cValHexLE = HexUtils.changeEndianness32(cValHex);
+            
+            % Compute size of cDataInt.  
+            % 10 bytes for first "write"
+            % 6 bytes per additional "write next"
+            cDataRows = 10 + (length(xValues) - 1) * 6;
+            cDataFullInt = zeros(cDataRows, 1);
             
             [rows, cols] = size(xValues);
             for n = 1 : rows
@@ -1049,7 +1153,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     cAddrHexLE = HexUtils.changeEndianness32(cAddrHex);
 
                     % Create commnad string
-                    cCmdHex = 'A2';
+                    cCmdHex = 'A2'; % write
                     cStopHex = '55';
                     cDataHex = [cCmdHex cAddrHexLE cValHexLE(n, :) cStopHex];
                     
@@ -1058,14 +1162,15 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     % Write next (don't need address)
                 
                     % Create commnad string
-                    cCmdHex = 'A3';
+                    cCmdHex = 'A3'; % write next
                     cStopHex = '55';
                     cDataHex = [cCmdHex cValHexLE(n, :) cStopHex];
                     
                 end
                 
-                % Convert to a column list of 10 hex bytes (write first)
-                % or 6 hex bytes (write next)
+                % Convert to a column list of hex bytes:
+                % (write first) 10 hex bytes OR
+                % (write next) 6 hex bytes
                 % 1-byte start
                 % 4-bytes address litte endian (only on first)
                 % 4-bytes value little endian
@@ -1073,14 +1178,29 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 L = length(cDataHex);
                 cDataHex = reshape(cDataHex, 2, L/2)';
 
-                % Convert each byte from hex representation to int
-                % representation
+                % Convert each byte from hex representation to int representation
                 cDataInt = hex2dec(cDataHex);
                 
-                % Issue command
-                fwrite(this.s, cDataInt);
+                % OLD
+                % Issue command for each 
+                % fwrite(this.s, cDataInt);
+                
+                % NEW
+                % Combine into a single stream of "write" and "write next"
+                % and issue command at the end
+                
+                if n == 1
+                    dStart = 1;
+                    dEnd = 10;
+                    cDataFullInt(dStart : dEnd, 1) = cDataInt;
+                else
+                    dStart = 11 + (n - 2)*6;
+                    dEnd = dStart + 5;
+                    cDataFullInt(dStart : dEnd, 1) = cDataInt;
+                end
                 
             end
+            fwrite(this.s, cDataFullInt);
         end
         
         
