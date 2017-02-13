@@ -116,6 +116,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
         u16BaudRate = uint16(57600);
         
         u16InputBufferSize = uint16(2^15);
+        u16OutputBufferSize = uint16(2^15);
 
         % {double 1x1} - timeout of MATLAB {serial} - amount of time it will
         % wait for a response before aborting.  
@@ -215,6 +216,16 @@ classdef LC400 < npoint.lc400.AbstractLC400
             this.disconnect();
             
         end
+        
+        
+        function d = getInverseDigitalScaleFactor(this, u8Ch)
+                       
+           import npoint.hex.HexUtils
+           cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetInverseDigitalScaleFactor );
+           d = this.readSingle(cAddr, 'float');
+            
+        end
+        
         
         % @param {uint8 1x1} channel
         function l = getWavetableEnable(this, u8Ch)
@@ -577,13 +588,16 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             i32Raw = this.recordRaw(u32Num);
             dRaw = double(i32Raw);
-            dRelative = dRaw / (2^20);
-            d = dRelative * double(this.getRange(1)); % convert to radians
+            max(dRaw(1, :))
+            min(dRaw(1, :))
+            dMax = (2^20 - 2)/2;
+            dRelative = dRaw / dMax;
+            d = dRelative ; % * double(this.getRange(1)) convert to radians
             
             % Channel 1 and 2 command signals need to be scaled by inverse
             % of the digital scale factor.
-            % d(1, :) = d(1, :) * this.getFloatValueFromString(1, this.DIGITAL_SCALE_INV);
-            % d(3, :) = d(2, :) * this.getFloatValueFromString(2, this.DIGITAL_SCALE_INV);
+            d(1, :) = d(1, :) * this.getInverseDigitalScaleFactor(uint8(1));
+            d(3, :) = d(3, :) * this.getInverseDigitalScaleFactor(uint8(2));
         end
         
         
@@ -1173,7 +1187,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             
             % Based on the size of the input buffer, there is a maximum
-            % number of reads readArray can do and not overfill the inut
+            % number of reads readArray can do and not overfill the input
             % buffer. 
             %
             % The response of a readArray command contians:
