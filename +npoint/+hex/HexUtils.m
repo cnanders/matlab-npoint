@@ -39,7 +39,9 @@ classdef HexUtils
         end
         
         % Convert a {int8} into a two-character hex string.  Works for an
-        % array of {int8} as well
+        % array of {int8} as well. Possible problems w/ column vs. row
+        % array
+        % @param {int8 1xm}
         function c = int8ToHex(i8)
             c = sprintf('%02x', i8);            
         end
@@ -58,7 +60,7 @@ classdef HexUtils
             % Convert from hex representation to integer representation
             yInt = hex2dec(c);
             % Convert from integer representation to binary representation,
-            % forcing 
+            % forcing specified number of bits
             y = dec2bin(yInt, i8Bits);
         end
         
