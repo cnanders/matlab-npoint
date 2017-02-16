@@ -3,7 +3,7 @@
 % Add npoint package
 addpath(genpath(fullfile(cDirThis, '..')));
 
-lc400 = npoint.lc400.LC400();
+lc400 = npoint.lc400.LC400('cPort', 'COM3');
 lc400.init();
 lc400.connect();
 lc400.s.BaudRate

@@ -49,7 +49,17 @@ The “dev/tty.usbserial-xxxxxxxA” is the string you pass to the {serial} in M
 
 ## Windows Users
 
-I’m on macOS and didn’t go through the Windows process.  But it is similar.  Please consult the [FTDI website](http://www.ftdichip.com/Drivers/VCP.htm).
+I did the install on Windows 7.  For other versions of Windows, Please consult the  [Installation Guides](http://www.ftdichip.com/Support/Documents/InstallGuides.htm) on the [FTDI website](http://www.ftdichip.com/Drivers/VCP.htm).  I found that the [Windows 7 Installation Guide](http://www.ftdichip.com/Support/Documents/AppNotes/AN_119_FTDI_Drivers_Installation_Guide_for_Windows7.pdf) didn't get me all the way to the VCP.  Adam Frost (nPoint) walked me through the last step.  Do this instead:
+
+1. [Download the VCP driver](http://www.ftdichip.com/Drivers/VCP.htm) from the FTDI website and expand the .zip file
+2. Control Panel -> Hardware and Sound -> under “devices and printers" click "Device Manager"
+3. Under "Other Devices", there will be two LC400s listed (apparently the FDTI chip has two USB boards, we only use the first one)
+4. Right click the first one and select "Update Driver"
+5. Choose the driver at the location of your download in step 1.
+6. Now back in Device manager under "Universal Serial Bus Controllers" there will be something called "USB Serial Converter A".  
+7. Right click "USB Serial Converter A" -> Properties -> Advanced -> on the "Advanced" tab, click "Load VCP" and click "OK".
+8. Unplug the USB cable from the machine.  Plug the USB cable back in.  Wait a minute or two.  Refresh the Device Manager.  Now under "Ports" you will see "USB Serial Port (COM3)"
+9. You are done.
 
 
 
