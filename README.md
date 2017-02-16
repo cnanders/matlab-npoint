@@ -61,7 +61,13 @@ I did the install on Windows 7.  For other versions of Windows, Please consult t
 8. Unplug the USB cable from the machine.  Plug the USB cable back in.  Wait a minute or two.  Refresh the Device Manager.  Now under "Ports" you will see "USB Serial Port (COM3)"
 9. You are done.
 
+# TCP/IP Notes
 
+1. Network control uses the telnet port 23. Devices with this port open are not permitted on the LBNL WAN. They are also hammered by the network scans and usually lock up the device. (we encountered similar problems with the Galil controllers). So, you need to put the device on a private subnet. **You will most likely need a computer with dual Ethernet**.
+
+2. The nPoint only uses DHCP for address resolution. You can't assign a permanent IP address via NVRAM. Jeff needs to set up a DHCP server on your control PC and assign a fixed IP to the nPoint on the private subnet.
+
+If you follow the above guidelines, things are pretty straightforward thereafter. We did this with the LC.401 controller on the IntelAis project and it worked without problems. Remember that you have to open a socket connection to port 23 (telnet) when you talk to the device.
 
 # Hungarian Notation
 
