@@ -1,12 +1,10 @@
-# Instructions for Use
+# Installation
 
 1. [Make the nPoint LC.400 recognizable as a Virtual COM Port (VCP)](#vcp) on your computer. Do not proceed until this is complete.
-<a name="step2"</a>
-2.  Clone the git repo into your MATLAB project `$ git clone https://github.com/cnanders/matlab-npoint-lc400.git`
-3. Add the repo to the MATLAB path `addpath('matlab-npoint-lc400');`
-4. This repo is a namespaced package.  In MATLAB, there are two ways to access classes within a package
-    1. Through the full qualified namespace, i.e., `lc400 = npoint.lc400.LC400();`
-    2. Alternatively, you can import a package or class, e.g., `import npoint.lc400.LC400` within the scope of a script or function and access the class directly, e.g., `LC400`.  With this approach, you don’t have to use the full qualified name within the scope of the import.
+
+2. This repo and its dependencies are namespaced packages.  See [Working With Packages in MATLAB](https://github.com/cnanders/matlab-package-notes) for more information.
+    1. Clone this repo into your MATLAB project, preferably in a “packages” directory.  See [Recommended Project Structure](#project-structure)
+    2. Clone the repos of all [required packages](#requirements) into the “packages” folder of your MATLAB project. 
 5. When instantiating the `npoint.lc400.LC400` instance, use the [varargin syntax](https://www.mathworks.com/help/matlab/ref/varargin.html) to pass a property `cPort` with the VCP value you obtained in step 1, e.g., `lc400 = npoint.lc400.LC400('cPort', '/dev/tty.usbserial-7440002A');`
 
 <a name="vcp"></a>
@@ -73,6 +71,13 @@ If you follow the above guidelines, things are pretty straightforward thereafter
 
 This repo uses [MATLAB Hungarian notation](https://github.com/cnanders/matlab-hungarian) for variable names.  
 
+<a name="requirements"></a>
+# Required Packages
+
+- [cnanders/matlab-hex](https://github.com/cnanders/matlab-hex.git)
+- [cnanders/matlab-ieee](https://github.com/cnanders/matlab-ieee.git)
+
+<a name="project-structure"></a>
 # Recommended Project Structure
 
 
@@ -80,9 +85,13 @@ This repo uses [MATLAB Hungarian notation](https://github.com/cnanders/matlab-hu
   * libs
     * lib-a
     * lib-b
-  * pkgs
+  * packages
     * matlab-npoint-lc400
       * +noint
+    * matlab-hex **(dependency)**
+      * +hex
+    * matlab-ieee **(dependency)**
+      * +ieee
 	* other-a
       * +other-a
 	* other-b
