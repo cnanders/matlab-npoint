@@ -202,13 +202,20 @@ classdef LC400 < npoint.lc400.AbstractLC400
         
         function connect(this)
             this.msg('connect()');
-            fopen(this.s); 
+            try
+                fopen(this.s); 
+            catch ME
+                
+            end
             this.clearBytesAvailable();
         end
         
         function disconnect(this)
             this.msg('disconnect()');
-            fclose(this.s);
+            try
+                fclose(this.s);
+            catch ME
+            end
         end
         
         function delete(this)
