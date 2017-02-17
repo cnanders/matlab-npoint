@@ -86,7 +86,7 @@ This repo uses [MATLAB Hungarian notation](https://github.com/cnanders/matlab-hu
     * lib-a
     * lib-b
   * packages
-    * matlab-npoint-lc400
+    * matlab-npoint-lc400 **(this repo)**
       * +noint
     * matlab-hex **(dependency)**
       * +hex
