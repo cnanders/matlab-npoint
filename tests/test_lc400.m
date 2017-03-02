@@ -3,10 +3,10 @@
 % Add this pkg
 addpath(genpath(fullfile(cDirThis, '..', 'pkg')));
 
-% Add dependency github/cnanders/matlab-hex (assumed one dir above)
+% Add dependency github/cnanders/matlab-hex/pkg (assumed one dir above)
 addpath(genpath(fullfile(cDirThis, '..', '..', 'matlab-hex', 'pkg')));
 
-% Add dependency github/cnanders/matlab-ieee (assumed one dir above)
+% Add dependency github/cnanders/matlab-ieee/pkg (assumed one dir above)
 addpath(genpath(fullfile(cDirThis, '..', '..', 'matlab-ieee', 'pkg')));
 
 lc400 = npoint.lc400.LC400('cPort', 'COM3');
