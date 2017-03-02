@@ -7,7 +7,7 @@
     2. Clone the repos of all [dependencies](#dependencies) into the “vendor” folder of your MATLAB project. 
 3. Add the namespaced packages to the MATLAB path, e.g., 
 
-```
+```matlab
 addpath('vendor/github/cnanders/matlab-hex/pkg');
 addpath('vendor/github/cnanders/matlab-ieee/pkg');
 addpath('vendor/github/cnanders/matlab-npoint-lc400/pkg');
@@ -88,12 +88,12 @@ This repo uses [MATLAB Hungarian notation](https://github.com/cnanders/matlab-hu
 # Recommended Project Structure
 
 
-* project
-  * vendor
-    * github
-      * cnanders
-        * matlab-npoint-lc400 **(this repo)**
-        * matlab-hex **(dependency)**
-        * matlab-ieee **(dependency)**
-  * file_a.m
-  * file_b.m
+- project
+	- vendor
+		- github
+			- cnanders
+				- matlab-npoint-lc400 **(this repo)**
+				- matlab-hex **(dependency)**
+				- matlab-ieee **(dependency)**
+- file_a.m
+- file_b.m

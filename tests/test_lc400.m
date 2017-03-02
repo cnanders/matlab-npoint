@@ -1,7 +1,13 @@
 [cDirThis, cName, cExt] = fileparts(mfilename('fullpath'));
 
-% Add npoint package
-addpath(genpath(fullfile(cDirThis, '..')));
+% Add this pkg
+addpath(genpath(fullfile(cDirThis, '..', 'pkg')));
+
+% Add dependency github/cnanders/matlab-hex (assumed one dir above)
+addpath(genpath(fullfile(cDirThis, '..', '..', 'matlab-hex', 'pkg')));
+
+% Add dependency github/cnanders/matlab-ieee (assumed one dir above)
+addpath(genpath(fullfile(cDirThis, '..', '..', 'matlab-ieee', 'pkg')));
 
 lc400 = npoint.lc400.LC400('cPort', 'COM3');
 lc400.init();
@@ -13,7 +19,7 @@ lc400.getRange(1)
 
 % Test
 
-cAddress = npoint.hex.HexUtils.add(lc400.addrCh1Base, lc400.offsetRange);
+cAddress = hex.HexUtils.add(lc400.addrCh1Base, lc400.offsetRange);
  
 lc400.readSingle([cAddress; cAddress], ['int32'; 'int32'])
 
@@ -56,7 +62,7 @@ lc400.setWavetable(uint8(2), yInt');
 
 %}
 
-w = lc400.getWavetables(5000);
+w = lc400.getWavetables(20000);
 
 figure
 % subplot(122)
