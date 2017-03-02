@@ -81,8 +81,8 @@ This repo uses [MATLAB Hungarian notation](https://github.com/cnanders/matlab-hu
 <a name="dependencies"></a>
 # Dependencies
 
-- [cnanders/matlab-hex](https://github.com/cnanders/matlab-hex.git)
-- [cnanders/matlab-ieee](https://github.com/cnanders/matlab-ieee.git)
+- [github/cnanders/matlab-hex](https://github.com/cnanders/matlab-hex.git)
+- [github/cnanders/matlab-ieee](https://github.com/cnanders/matlab-ieee.git)
 
 <a name="project-structure"></a>
 # Recommended Project Structure
