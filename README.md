@@ -8,9 +8,9 @@
 3. Add the namespaced packages to the MATLAB path, e.g., 
 
 ```matlab
-addpath('vendor/github/cnanders/matlab-hex/pkg');
-addpath('vendor/github/cnanders/matlab-ieee/pkg');
-addpath('vendor/github/cnanders/matlab-npoint-lc400/pkg');
+addpath('vendor/github/cnanders/matlab-hex/src');
+addpath('vendor/github/cnanders/matlab-ieee/src');
+addpath('vendor/github/cnanders/matlab-npoint-lc400/src');
 ```
 5. When instantiating the `npoint.lc400.LC400` instance, use the [varargin syntax](https://www.mathworks.com/help/matlab/ref/varargin.html) to pass a property `cPort` with the VCP value you obtained in step 1, e.g., `lc400 = npoint.lc400.LC400('cPort', '/dev/tty.usbserial-7440002A');`
 
