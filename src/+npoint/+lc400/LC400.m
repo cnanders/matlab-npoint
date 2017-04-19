@@ -7,8 +7,8 @@ classdef LC400 < npoint.lc400.AbstractLC400
     % types have different formats:
     % Memory address        32-bit big endian hex format
     % Floats (f)            32-bit IEEE.754 hex format 
-    % Integers (i)          int32 [?2^31 : 2^31 ? 1] 32-bit big endian hex format
-    % Unsigned ints (u)     uint32 [0 : 2^32 ? 1] 32-bit big endian hex format
+    % Integers (i)          int32 [-2^31 : 2^31 - 1] 32-bit big endian hex format
+    % Unsigned ints (u)     uint32 [0 : 2^32 - 1] 32-bit big endian hex format
     
     
     % A note about signed integers with negative values.  MATLAB uses
@@ -95,6 +95,9 @@ classdef LC400 < npoint.lc400.AbstractLC400
         offsetIntegralGain = '728'
         offsetDerivativeGain = '730'
         
+        cCONNECTION_RS232 = 'rs232'
+        cCONNECTION_TCPIP = 'tcpip';
+        
                 
     end
     
@@ -103,6 +106,8 @@ classdef LC400 < npoint.lc400.AbstractLC400
         % {serial 1x1}
         s
        
+        % {char 1xm} cCONNECTION_TCPIP or cCONNECTION_RS232
+        cConnection
        
         % {char 1xm} port of MATLAB {serial}
         % In Terminal, run ls  -l /dev/{tty,cu}.* to see a list of all
@@ -123,12 +128,21 @@ classdef LC400 < npoint.lc400.AbstractLC400
         dTimeout = 10;
         
         lShowWaitingForBytes = true;
+        
+        % {char 1xm} tcp/ip host
+        cTcpipHost = '192.168.0.2'
+        
+        % {uint16 1x1} tcpip port network control uses telnet port 23
+        u16TcpipPort = uint16(23)
        
     end
     
     methods 
         
         function this = LC400(varargin) 
+            
+            % Default connection
+            this.cConnection = this.cCONNECTION_RS232;
             
             for k = 1 : 2: length(varargin)
                 this.msg(sprintf('passed in %s', varargin{k}));
@@ -169,16 +183,27 @@ classdef LC400 < npoint.lc400.AbstractLC400
         
         function init(this)
             
-            this.s = serial(this.cPort);    
-            st = get(this.s,'Status');
-            % cannot open a port a second time
-            if(st(1) == 'o')
-                fclose(this.s);
+            switch this.cConnection
+                case this.cCONNECTION_RS232
+                    this.s = serial(this.cPort);    
+                    st = get(this.s,'Status');
+                    % cannot open a port a second time
+                    if(st(1) == 'o')
+                        fclose(this.s);
+                    end
+
+                    this.s.BaudRate = this.u16BaudRate;
+                    this.s.InputBufferSize = this.u16InputBufferSize;
+                    this.s.OutputBufferSize = this.u16OutputBufferSize;
+                case this.cCONNECTION_TCPIP
+                    
+                    this.s = tcpip(this.cTcpipHost, this.u16TcpipPort);
+                    % this.s.BaudRate = this.u16BaudRate;
+                    this.s.InputBufferSize = this.u16InputBufferSize;
+                    this.s.OutputBufferSize = this.u16OutputBufferSize;
+                    
+                    % To Do
             end
-            
-            this.s.BaudRate = this.u16BaudRate;
-            this.s.InputBufferSize = this.u16InputBufferSize;
-            this.s.OutputBufferSize = this.u16OutputBufferSize;
         end
         
         function clearBytesAvailable(this)
@@ -640,7 +665,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 % Generate command string in big endian format
                 % [start-byte][4-byte memory address][stop-byte]
                 % 'A0' is the read 32-bit val from address command
-                % '55' is stop bit
+                % '55' is stop byte
                 cmdstr = ['A0' addr(j,:) '55'];
                 
                 % Convert 4-byte memory address to least significant byte
@@ -662,10 +687,10 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 
                 % Convert each 2-characer hex byte to a double to get a
                 % {double 6x1} 
-                c = hex2dec(c);
+                c = hex2dec(c)
                 
                 % Write the command to serial
-                fwrite(this.s,c);
+                fwrite(this.s, c);
                 
             end
             
@@ -862,7 +887,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 s = dec2hex(s, 2);
                 
                 % Concate the big endian response into a {char 1x20}
-                s = reshape(s',1,20);
+                s = reshape(s',1, 20);
                 
                 % Grab the eight hex characters of data (32-bit)
                 s = s(11:18);
