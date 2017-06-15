@@ -14,22 +14,23 @@ addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-ieee', 'src')
 
 lc400 = npoint.lc400.LC400(...
     'cConnection', npoint.lc400.LC400.cCONNECTION_TCPIP, ...
-    'cTcpipHost', '192.168.0.2', ...
+    'cTcpipHost', '192.168.0.3', ...
     'u16TcpipPort', 23 ...
 );
+
 
 lc400.init();
 lc400.connect();
 % lc400.s.BaudRate
-lc400.s.Terminator
+% lc400.s.Terminator
 lc400.getRange(1)
-
 
 % Test
 cAddress = hex.HexUtils.add(lc400.addrCh1Base, lc400.offsetRange);
-lc400.readSingle([cAddress; cAddress], ['int32'; 'int32'])
+lc400.readSingle([cAddress; cAddress], ['uint32'; 'uint32'])
 
-
+lc400.disconnect()
+return;
 
 d = lc400.getWavetables(30000);
 figure

@@ -202,7 +202,10 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     this.s.InputBufferSize = this.u16InputBufferSize;
                     this.s.OutputBufferSize = this.u16OutputBufferSize;
                     
-                    % To Do
+                    % Don't use Nagle's algorithm; send data
+                    % immediately to the newtork
+                    this.s.TransferDelay = 'off';
+                    
             end
         end
         
@@ -221,17 +224,19 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     this.s.BytesAvailable ...
                 );
                 this.msg(cMsg);
-                fread(this.s, this.s.BytesAvailable);
+                ffread(this.s, this.s.BytesAvailable);
             end
         end
         
         function connect(this)
+            
             this.msg('connect()');
             try
                 fopen(this.s); 
             catch ME
                 
             end
+            
             this.clearBytesAvailable();
         end
         
@@ -244,9 +249,8 @@ classdef LC400 < npoint.lc400.AbstractLC400
         end
         
         function delete(this)
-            this.msg('delete()');
+            this.msg('delete() calling disconnect()');
             this.disconnect();
-            
         end
         
         
@@ -342,7 +346,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
         % "counts per micron".
         function d = getRange(this, u8Ch)
             import hex.HexUtils
-            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetRange);
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetRange)
             d = this.readSingle(cAddr, 'uint32');
         end
         
@@ -426,7 +430,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             %}
             
             % NEW
-            % Use a single fwrite stream with both commands so they are
+            % Use a single write stream with both commands so they are
             % processed on same clock cycle on the LC400
             
             cAddr1Hex = HexUtils.add(this.addrCh1Base, this.offsetWavetableActive);
@@ -445,7 +449,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
 
             cDataHex = [...
                 cCmdHex cAddr1HexLE cValHexLE cStopHex ...
-                cCmdHex cAddr2HexLE cValHexLE cStopHex];
+                cCmdHex cAddr2HexLE cValHexLE cStopHex]
 
             % Convert to a column list of hex bytes
             % 1-byte start
@@ -637,7 +641,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
         % address and issuing the "read single" command.  Then it waits
         % until serial.BytesAvailable reaches the expected value (each
         % "read single" returns 10 bytes (start (1) address (4) data (4)
-        % stop (1)).  Then it issues a single fread() to pull all of the
+        % stop (1)).  Then it issues a single ffread() to pull all of the
         % returned data from input buffer of the serial.  It then
         % unpacks the returned byte stream, distinguishing the data from
         % each read command, and then converts each read to float, int, or
@@ -707,7 +711,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             this.waitForBytesExpected(dBytesExpected);
             
             dResponse = fread(this.s, this.s.BytesAvailable);
-            str = this.unpackMultiSingleRead(dResponse, m, type);
+            str = this.unpackMultiSinglefread(dResponse, m, type);
             
         end
         
@@ -793,12 +797,12 @@ classdef LC400 < npoint.lc400.AbstractLC400
             tic
             dResponse = fread(this.s, this.s.BytesAvailable);
             dTimeElapsed = toc;
-            cMsg = sprintf('readArray() fread elapsed time: %1.1f ms', dTimeElapsed * 1000);
+            cMsg = sprintf('readArray() read elapsed time: %1.1f ms', dTimeElapsed * 1000);
             % this.msg(cMsg);
             
             % Unpack the result
             tic 
-            d = this.unpackArrayRead(dResponse, cType);
+            d = this.unpackArrayfread(dResponse, cType);
             dTimeElapsed = toc;
             cMsg = sprintf('readArray() unpack elapsed time: %1.1f ms', dTimeElapsed * 1000);
             % this.msg(cMsg);
@@ -806,17 +810,17 @@ classdef LC400 < npoint.lc400.AbstractLC400
         end
         
         
-        % Unpack the response of a fread on the serial after issuing one
+        % Unpack the response of a read on the serial after issuing one
         % (or multiple) "read single" commands and 
-        % @param {double dNum*10x1} - dResponse - response of a fread on the serial
+        % @param {double dNum*10x1} - dResponse - response of a read on the serial
         %   after issuing one (or multiple) "read single" commands.  Each
-        %   byte of the response is represented as a double after fread.
+        %   byte of the response is represented as a double after read.
         % @param {uint32 1x1} u32Num - number of "read single" commands that were
-        %   issued prior to fread
+        %   issued prior to read
         % @param {char 1xu32Num} cType 
         
         
-        function str = unpackMultiSingleRead(this, dResponse, u32Num, type)
+        function str = unpackMultiSinglefread(this, dResponse, u32Num, type)
             
                         
             % The response of a single read command is a {double 10x1} 
@@ -900,10 +904,10 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
         end
         
-        % @param {double ?x1} response of fread
+        % @param {double ?x1} response of read
         % @param {char 1x1} cDataType 
         
-        function d = unpackArrayRead(this, dResponse, cDataType)
+        function d = unpackArrayfread(this, dResponse, cDataType)
          
             
             % The response of a "read array" command is a {double (1 + 4 + 4*numReads + 1)x1} 
