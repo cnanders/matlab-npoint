@@ -12,8 +12,8 @@ addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-hex', 'src'))
 % github/cnanders/matlab-ieee
 addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-ieee', 'src')));
 
-comm = npoint.lc400.LC400(...
-    'cConnection', npoint.lc400.LC400.cCONNECTION_TCPIP, ...
+comm = npoint.LC400(...
+    'cConnection', npoint.LC400.cCONNECTION_TCPCLIENT, ...
     'cTcpipHost', '192.168.0.2', ...
     'u16TcpipPort', 23 ...
 );
@@ -25,7 +25,11 @@ comm.connect();
 % comm.s.Terminator
 comm.getRange(1)
 
-return
+%{
+comm.disconnect()
+return;
+%}
+
 
 % Test
 cAddress = hex.HexUtils.add(comm.addrCh1Base, comm.offsetRange);
