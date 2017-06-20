@@ -1,4 +1,4 @@
-classdef LC400 < npoint.lc400.AbstractLC400
+classdef LC400 < npoint.AbstractLC400
     
     
     
@@ -97,6 +97,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
         
         cCONNECTION_RS232 = 'rs232'
         cCONNECTION_TCPIP = 'tcpip';
+        cCONNECTION_TCPCLIENT = 'tcpclient'
         
                 
     end
@@ -197,6 +198,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     this.s.OutputBufferSize = this.u16OutputBufferSize;
                 case this.cCONNECTION_TCPIP
                     
+                    
                     this.s = tcpip(this.cTcpipHost, this.u16TcpipPort);
                     % this.s.BaudRate = this.u16BaudRate;
                     this.s.InputBufferSize = this.u16InputBufferSize;
@@ -205,6 +207,10 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     % Don't use Nagle's algorithm; send data
                     % immediately to the newtork
                     this.s.TransferDelay = 'off';
+                   
+                case this.cCONNECTION_TCPCLIENT
+                    
+                    this.s = tcpclient(this.cTcpipHost, this.u16TcpipPort);
                     
             end
         end
@@ -224,28 +230,41 @@ classdef LC400 < npoint.lc400.AbstractLC400
                     this.s.BytesAvailable ...
                 );
                 this.msg(cMsg);
-                ffread(this.s, this.s.BytesAvailable);
+                this.read()
+                
             end
         end
         
         function connect(this)
             
-            this.msg('connect()');
-            try
-                fopen(this.s); 
-            catch ME
-                
+            switch this.cConnection
+                case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
+                    this.msg('connect()');
+                    try
+                        fopen(this.s); 
+                    catch ME
+
+                    end
+
+                    this.clearBytesAvailable();
+                case this.cCONNECTION_TCPCLIENT
+                    % do nothing
             end
-            
-            this.clearBytesAvailable();
         end
         
         function disconnect(this)
-            this.msg('disconnect()');
-            try
-                fclose(this.s);
-            catch ME
+            
+            switch this.cConnection
+                case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
+                    this.msg('disconnect()');
+                    try
+                        fclose(this.s);
+                    catch ME
+                    end
+                 case this.cCONNECTION_TCPCLIENT
+                    % do nothing
             end
+                    
         end
         
         function delete(this)
@@ -461,10 +480,14 @@ classdef LC400 < npoint.lc400.AbstractLC400
 
             % Convert each byte from hex representation to int
             % representation
-            cDataInt = hex2dec(cDataHex);
+            dDataInt = hex2dec(cDataHex);
 
             % Issue command
-            fwrite(this.s, cDataInt);
+            
+            this.write(dDataInt);
+            
+            
+                    
         
         end
         
@@ -691,10 +714,12 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 
                 % Convert each 2-characer hex byte to a double to get a
                 % {double 6x1} 
-                c = hex2dec(c)
+                d = hex2dec(c);
                 
                 % Write the command to serial
-                fwrite(this.s, c);
+                this.write(d)
+                
+                
                 
             end
             
@@ -710,7 +735,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
             dBytesExpected = m * 10;
             this.waitForBytesExpected(dBytesExpected);
             
-            dResponse = fread(this.s, this.s.BytesAvailable);
+            dResponse = this.read();
             str = this.unpackMultiSinglefread(dResponse, m, type);
             
         end
@@ -786,8 +811,8 @@ classdef LC400 < npoint.lc400.AbstractLC400
              
             
             % Write the command to serial
-            fwrite(this.s, dDataInt);
-                        
+            this.write(dDataInt);
+                                    
             % Wait for expected number of bytes to be available
             dBytesExpected = 1 + 4 + 4 * u32Num + 1;
             
@@ -795,7 +820,10 @@ classdef LC400 < npoint.lc400.AbstractLC400
             
             % Read the result
             tic
-            dResponse = fread(this.s, this.s.BytesAvailable);
+            
+            dResponse = this.read();
+                        
+            
             dTimeElapsed = toc;
             cMsg = sprintf('readArray() read elapsed time: %1.1f ms', dTimeElapsed * 1000);
             % this.msg(cMsg);
@@ -1045,10 +1073,10 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 
                 % Convert each byte from hex representation to int
                 % representation
-                cDataInt = hex2dec(cDataHex);
+                dDataInt = hex2dec(cDataHex);
                                 
                 % Issue command
-                fwrite(this.s, cDataInt);
+                this.write(dDataInt);
                 
             end
         end
@@ -1219,7 +1247,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 
                 % OLD
                 % Issue command for each 
-                % fwrite(this.s, cDataInt);
+                % this.write(cDataInt);
                 
                 % NEW
                 % Combine into a single stream of "write" and "write next"
@@ -1236,7 +1264,7 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 end
                 
             end
-            fwrite(this.s, cDataFullInt);
+            this.write(cDataFullInt);
         end
         
         
@@ -1284,11 +1312,11 @@ classdef LC400 < npoint.lc400.AbstractLC400
                 c = reshape(cmdstr,2,L/2)';
                 
                 % Convert each hex byte to a decimal byte
-                c = hex2dec(c)
+                d = hex2dec(c)
                 
                 return
                 
-                fwrite(this.s, c);    
+                this.write(d);    
                 
             end
         end
@@ -1593,6 +1621,26 @@ classdef LC400 < npoint.lc400.AbstractLC400
         
         function msg(this, cMsg)
             fprintf('%s\n', cMsg);
+        end
+        
+        
+        function write(this, dData)
+            switch this.cConnection
+                case {this.cCONNECTION_RS232, this.cCONNECTION_TCPIP}
+                     fwrite(this.s, dData);
+                case this.cCONNECTION_TCPCLIENT
+                     write(this.s, uint8(dData));
+            end
+        end
+        
+        function dResponse = read(this)
+            switch this.cConnection
+                case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
+                    dResponse = fread(this.s, this.s.BytesAvailable);
+                case this.cCONNECTION_TCPCLIENT
+                    dResponse = read(this.s, this.s.BytesAvailable);
+            end
+                
         end
         
         
