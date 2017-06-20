@@ -4,7 +4,7 @@
 
 # 1.0.3
 
-- Added support for `tcpclient` instead of `tcpip` to move off of the instrument control toolbox.  To use tcpip connection, set `cConnection` property to `noint.lc400.LC400.cCONNECTION_TCPCLIENT` with varargin syntax
+- Added support for `tcpclient` (an alternative to `tcpip` that does not require the instrument control toolbox).  To use tcpip connection, set `cConnection` property to `noint.lc400.LC400.cCONNECTION_TCPCLIENT` with varargin syntax
 - `tcpclient` requires passing `int8` data to `write()` 
 
 # 1.0.2
