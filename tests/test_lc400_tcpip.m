@@ -12,38 +12,40 @@ addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-hex', 'src'))
 % github/cnanders/matlab-ieee
 addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-ieee', 'src')));
 
-lc400 = npoint.lc400.LC400(...
+comm = npoint.lc400.LC400(...
     'cConnection', npoint.lc400.LC400.cCONNECTION_TCPIP, ...
-    'cTcpipHost', '192.168.0.3', ...
+    'cTcpipHost', '192.168.0.2', ...
     'u16TcpipPort', 23 ...
 );
 
 
-lc400.init();
-lc400.connect();
-% lc400.s.BaudRate
-% lc400.s.Terminator
-lc400.getRange(1)
+comm.init();
+comm.connect();
+% comm.s.BaudRate
+% comm.s.Terminator
+comm.getRange(1)
+
+return
 
 % Test
-cAddress = hex.HexUtils.add(lc400.addrCh1Base, lc400.offsetRange);
-lc400.readSingle([cAddress; cAddress], ['uint32'; 'uint32'])
+cAddress = hex.HexUtils.add(comm.addrCh1Base, comm.offsetRange);
+comm.readSingle([cAddress; cAddress], ['uint32'; 'uint32'])
 
-lc400.disconnect()
+comm.disconnect()
 return;
 
-d = lc400.getWavetables(30000);
+d = comm.getWavetables(30000);
 figure
 hold on
 plot(d(1, :), 'r');
 plot(d(2, :), 'b');
 legend({'ch 1', 'ch 2'});
 
-lc400.disconnect();
+comm.disconnect();
 return;
 
 %{
-lc400.setTwoWavetablesActive(false);
+comm.setTwoWavetablesActive(false);
 
 period = 50e-3;
 clock = 24e-6;
@@ -65,12 +67,12 @@ hold on
 plot(t, xInt, 'r')
 plot(t, yInt, 'b');
 
-lc400.setWavetable(uint8(1), xInt');
-lc400.setWavetable(uint8(2), yInt');
+comm.setWavetable(uint8(1), xInt');
+comm.setWavetable(uint8(2), yInt');
 
 %}
 
-w = lc400.getWavetables(20000);
+w = comm.getWavetables(20000);
 
 figure
 % subplot(122)
@@ -81,13 +83,13 @@ plot(w(2, :), 'b')
 return
 
 
-lc400.setWavetableEnable(1, true);
-lc400.setWavetableEnable(2, true);
-lc400.setTwoWavetablesActive(true);
+comm.setWavetableEnable(1, true);
+comm.setWavetableEnable(2, true);
+comm.setTwoWavetablesActive(true);
 
 % (uint32(length(t))
 
-d = lc400.recordRaw(5000);
+d = comm.recordRaw(5000);
 figure
 hold on
 plot(d(1, :), 'r');
@@ -101,7 +103,7 @@ legend({...
     'ch 2 sensor' ...
 });
 
-lc400.setTwoWavetablesActive(false);
+comm.setTwoWavetablesActive(false);
 
 
 
