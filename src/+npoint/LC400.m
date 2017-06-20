@@ -1088,6 +1088,8 @@ classdef LC400 < npoint.AbstractLC400
         function writeArrayLong(this, cAddrHex, xValues)
             
             import hex.HexUtils
+            
+            cMethod = 'writeArrayLong()';
 
             % Based on the size of the output buffer, there is a maximum
             % number of write + write next commands the output buffer can
@@ -1109,25 +1111,29 @@ classdef LC400 < npoint.AbstractLC400
             % result by 6 bytes per "write next", then add 1 back for the
             % original "write"
             
-            dNumMax = floor((this.s.OutputBuffer - 10)/6) + 1;
-            dNumWriteArrays = ceil(length(xValues)/dNumMax);
-            cMethod = 'writeArrayLong()';
+            switch this.cConnection
+                case this.cCONNECTION_TCPCLIENT
+                    dOutputBuffer = 2^15;
+                otherwise
+                    dOutputBuffer = this.s.OutputBuffer;
+            end
             
-            
+            dNumMax = floor((dOutputBuffer - 10)/6) + 1;
+                    
             cMsg = sprintf(...
                 '%s s.OutputBuffer is %1.0f bytes ', ...
                 cMethod,...
-                this.s.OutputBuffer ...
+                dOutputBuffer ...
             );            
             this.msg(cMsg);
-            
+
             cMsg = sprintf(...
                 '%s Max writes of ouput buffer = %1.0f ', ...
                 cMethod, ...
                 dNumMax ...
             );            
             this.msg(cMsg);
-            
+
             cMsg = sprintf(...
                 '%s 10 bytes/write * 1 + 6 bytes/writenext * %1.0f = %1.0f bytes ', ...
                 cMethod, ...
@@ -1135,7 +1141,8 @@ classdef LC400 < npoint.AbstractLC400
                 10 + (dNumMax - 1)*6 ...
             );            
             this.msg(cMsg);
-            
+                       
+            dNumWriteArrays = ceil(length(xValues)/dNumMax);
             
             cMsg = sprintf(...
                 '%s Requires %1.0f calls to writeArray()', ...
@@ -1369,11 +1376,17 @@ classdef LC400 < npoint.AbstractLC400
             
             import hex.HexUtils
             
-            
             % Based on the size of the input buffer, there is a maximum
             % number of reads readArray can do and not overfill the input
             % buffer. 
-            %
+            
+            switch (this.cConnection)
+                case this.cCONNECTION_TCPCLIENT
+                    dInputBuffer = 2^15;
+                otherwise
+                    dInputBuffer = this.s.InputBuffer;
+            end
+            
             % The response of a readArray command contians:
             %   one byte for start, 
             %   four bytes for start memory address,
@@ -1381,9 +1394,8 @@ classdef LC400 < npoint.AbstractLC400
             %   one byte for stop
             % 
             % The max of reads can be caluclated:
-            
-            dMaxReads = floor((this.s.InputBuffer - 2 - 4)/4);
-            
+                        
+            dMaxReads = floor((dInputBuffer - 2 - 4)/4);
             
             % if u32Num > maxReads perform ceil(u32Num/maxReads)
             % readArray() calls, appending

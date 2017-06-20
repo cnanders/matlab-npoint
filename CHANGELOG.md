@@ -1,3 +1,7 @@
+# 1.0.4
+
+- Fixed bug in 1.0.3 where `InputBuffer` and `OutputBuffer` properties of `tcpclient` were being accessed
+
 # 1.0.3
 
 - Added support for `tcpclient` instead of `tcpip` to move off of the instrument control toolbox.  To use tcpip connection, set `cConnection` property to `noint.lc400.LC400.cCONNECTION_TCPCLIENT` with varargin syntax
