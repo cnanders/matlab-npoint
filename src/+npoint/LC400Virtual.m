@@ -116,7 +116,7 @@ classdef LC400Virtual < npoint.AbstractLC400
         
         
         % @param {uint32) u32Num - number of samples @ 24us clock
-        % @return {uint32 2 x u32Num} - wavetable values in [-2^20/2, +2^20/2]
+        % @return {uint32 2 x u32Num} - wavetable values in [-2^19, +2^19]
         function u32 = getWavetables(this, u32Num)
             u32 = this.i32Wavetable(:, 1 : u32Num);
         end
@@ -170,9 +170,9 @@ classdef LC400Virtual < npoint.AbstractLC400
         % i32Data(2, :) - ch 1 sensor
         % i32Data(3, :) - ch 2 command
         % i32Data(4, :) - ch 2 sensor
-        % Range of values is +/- 2^20/2 iven though data type is i32  
-        % +2^20/2 is +3 mrad mechanical tilt
-        % -2^20/2 is -3 mrad mechanical tilt
+        % Range of values is +/- 2^19 iven though data type is i32  
+        % +2^19 is +3 mrad mechanical tilt
+        % -2^19 is -3 mrad mechanical tilt
         %
         % Need to cast i32 returned from Java as a double before the
         % multiplication because in matlab when you multipley i32 by a
@@ -194,14 +194,15 @@ classdef LC400Virtual < npoint.AbstractLC400
         end
         
         % See recordRaw().  Difference here is returned values are {double}
-        % and are mechanical tilt of stage in radians. 
+        % and are mechanical tilt of stage relative to max value. 
         % @param {uint32) u32Num - number of samples @ 24us clock
-        % @return {double 4 x u32Num} dData - tilt of stage in radians
+        % @return {double 4 x u32Num} dData - relative tilt of stage
         
         function d = record(this, u32Num)
-            dRaw = double(this.recordRaw(u32Num)); % in [-2^20/2, +2^20/2]
-            dRel = dRaw / (2^20 / 2); % in [-1, 1]
-            d = dRel * 3e-3; % in [-3 mrad, +3 mrad]
+            dRaw = double(this.recordRaw(u32Num)); % in [-2^19, +2^19]
+            dRel = dRaw / (2^19); % in [-1, 1]
+            d = dRel;
+            % d = dRel * 3e-3; % in [-3 mrad, +3 mrad]
         end
         
         
