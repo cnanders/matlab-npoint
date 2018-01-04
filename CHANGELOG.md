@@ -1,3 +1,7 @@
+# 1.0.5
+
+- Built `npoint.LC400Virtual` and a test 
+
 # 1.0.4
 
 - Fixed bug in 1.0.3 where `InputBuffer` and `OutputBuffer` properties of `tcpclient` were being accessed

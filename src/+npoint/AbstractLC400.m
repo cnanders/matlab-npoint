@@ -22,9 +22,7 @@ classdef AbstractLC400 < handle
     end
     
     methods (Abstract)
-        
-        
-        
+                
         % @param {uint8 1x1} channel
         % @return {logical 1x1}
         getWavetableEnable(this, u8Ch)
@@ -37,7 +35,7 @@ classdef AbstractLC400 < handle
         % @param {char 1x1} cProp - PID property. Supported values
         % this.GAIN_PROPORTIONAL
         % this.GAIN_INTEGRAL
-        % this.GAIN_DIFFERENTIAL
+        % this.GAIN_DERIVATIVE
         % @return {double 1x1}
         getGain(this, u8Ch, cProp) 
         
@@ -54,7 +52,11 @@ classdef AbstractLC400 < handle
         % @return {double 1x1}
         getFloatValueFromString(this, u8Ch, cProp)
         
+        % @param {uint32) u32Num - number of samples @ 24us clock
+        % @return {int32 2 x u32Num} - wavetable values in [-2^20/2, +2^20/2]
+        getWavetables(this, u32Num)
         
+    
         % @param {uint8 1x1} channel
         % @param {char 1xm} supported values:
         % this.ANALOG_OFFSET
