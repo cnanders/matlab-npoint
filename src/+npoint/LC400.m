@@ -135,6 +135,8 @@ classdef LC400 < npoint.AbstractLC400
         
         % {uint16 1x1} tcpip port network control uses telnet port 23
         u16TcpipPort = uint16(23)
+        
+        dTimeoutSeconds = 1;
        
     end
     
@@ -210,7 +212,9 @@ classdef LC400 < npoint.AbstractLC400
                    
                 case this.cCONNECTION_TCPCLIENT
                     
-                    this.s = tcpclient(this.cTcpipHost, this.u16TcpipPort);
+                    this.s = tcpclient(this.cTcpipHost, this.u16TcpipPort, ...
+                        'Timeout', this.dTimeoutSeconds ...
+                    );
                     
             end
         end
@@ -286,15 +290,25 @@ classdef LC400 < npoint.AbstractLC400
         function l = getWavetableEnable(this, u8Ch)
             import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable);
-            l = this.readSingle(cAddr, 'uint32');
+            try
+                l = logical(this.readSingle(cAddr, 'uint32'));
+            catch mE
+                fprintf('npoint.LC400.getWavetableEnable() caught: %s\n', mE.message);
+                l = false;
+            end
         end
         
         % @param {uint8 1x1} channel
         function l = getWavetableActive(this, u8Ch)
-            
             import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive);
-            l = this.readSingle(cAddr, 'uint32');
+            try
+                l = logical(this.readSingle(cAddr, 'uint32'));
+            catch mE
+                fprintf('npoint.LC400.getWavetableActive() caught: %s\n', mE.message);
+                l = false;
+            end
+
         end
         
         % @param {uint8 1x1} u8Ch - channel
@@ -1632,7 +1646,7 @@ classdef LC400 < npoint.AbstractLC400
         
         
         function msg(this, cMsg)
-            fprintf('%s\n', cMsg);
+            % fprintf('%s\n', cMsg);
         end
         
         

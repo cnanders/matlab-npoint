@@ -14,7 +14,7 @@ addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-ieee', 'src')
 
 comm = npoint.LC400(...
     'cConnection', npoint.LC400.cCONNECTION_TCPCLIENT, ...
-    'cTcpipHost', '192.168.0.2', ...
+    'cTcpipHost', '192.168.20.20', ...
     'u16TcpipPort', 23 ...
 );
 
@@ -24,6 +24,8 @@ comm.connect();
 % comm.s.BaudRate
 % comm.s.Terminator
 comm.getRange(1)
+comm.getWavetableActive(1)
+comm.getWavetableActive(2)
 
 %{
 comm.disconnect()
@@ -36,6 +38,7 @@ cAddress = hex.HexUtils.add(comm.addrCh1Base, comm.offsetRange);
 comm.readSingle([cAddress; cAddress], ['uint32'; 'uint32'])
 
 comm.disconnect()
+
 return;
 
 d = comm.getWavetables(30000);
