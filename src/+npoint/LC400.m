@@ -128,7 +128,7 @@ classdef LC400 < npoint.AbstractLC400
         % wait for a response before aborting.  
         dTimeout = 10;
         
-        lShowWaitingForBytes = true;
+        lShowWaitingForBytes = false;
         
         % {char 1xm} tcp/ip host
         cTcpipHost = '192.168.0.2'
