@@ -186,11 +186,23 @@ classdef LC400Virtual < npoint.AbstractLC400
         % to convert back to real world units.  The sensor output
         % register already has the inverse digital scale factor applied.
         
-        function u32 = recordRaw(this, u32Num)
-            u32(1, 1 : u32Num) = this.i32Wavetable(1, 1 : u32Num); % ch1 raw command
-            u32(2, 1 : u32Num) = this.i32Wavetable(1, 1 : u32Num); % ch1 raw sensor
-            u32(3, 1 : u32Num) = this.i32Wavetable(2, 1 : u32Num); % ch1 raw command
-            u32(4, 1 : u32Num) = this.i32Wavetable(2, 1 : u32Num); % ch2 raw sensor
+        function i32 = recordRaw(this, u32Num)
+            i32(1, 1 : u32Num) = this.i32Wavetable(1, 1 : u32Num); % ch1 raw command
+            
+            if this.lActive(1)
+                i32(2, 1 : u32Num) = this.i32Wavetable(1, 1 : u32Num); % ch1 raw sensor
+            else
+                i32(2, 1 : u32Num) = int32(randn(1, u32Num) * 0.025 * 2^18);
+            end
+            
+            i32(3, 1 : u32Num) = this.i32Wavetable(2, 1 : u32Num); % ch1 raw command
+            
+            if this.lActive(2)
+                i32(4, 1 : u32Num) = this.i32Wavetable(2, 1 : u32Num); % ch2 raw sensor
+            else
+                i32(4, 1 : u32Num) = int32(randn(1, u32Num) * 0.025 * 2^18); % ch2 raw sensor
+            end
+            
         end
         
         % See recordRaw().  Difference here is returned values are {double}

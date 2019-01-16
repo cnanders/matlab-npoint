@@ -12,12 +12,12 @@ addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-hex', 'src'))
 % github/cnanders/matlab-ieee
 addpath(genpath(fullfile(cDirVendor, 'github', 'cnanders', 'matlab-ieee', 'src')));
 
+
 comm = npoint.LC400(...
     'cConnection', npoint.LC400.cCONNECTION_TCPCLIENT, ...
     'cTcpipHost', '192.168.20.20', ...
     'u16TcpipPort', 23 ...
 );
-
 
 comm.init();
 comm.connect();
@@ -26,6 +26,7 @@ comm.connect();
 comm.getRange(1)
 comm.getWavetableActive(1)
 comm.getWavetableActive(2)
+
 
 %{
 comm.disconnect()
