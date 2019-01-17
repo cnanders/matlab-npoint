@@ -25,7 +25,7 @@ classdef AbstractLC400 < handle
                 
         % @param {uint8 1x1} channel
         % @return {logical 1x1}
-        getWavetableEnable(this, u8Ch)
+        % getWavetableEnable(this, u8Ch)
         
         % @param {uint8 1x1} channel
         % @return {logical 1x1}
@@ -37,11 +37,11 @@ classdef AbstractLC400 < handle
         % this.GAIN_INTEGRAL
         % this.GAIN_DERIVATIVE
         % @return {double 1x1}
-        getGain(this, u8Ch, cProp) 
+        % getGain(this, u8Ch, cProp) 
         
         % @param {uint8 1x1} channel
         % @return {logical 1x1}
-        getServoState(this, u8Ch)
+        % getServoState(this, u8Ch)
         
         % @param {uint8 1x1} channel
         % @param {char 1xm} cProp - supported values:
@@ -50,7 +50,7 @@ classdef AbstractLC400 < handle
         % this.DIGITAL_SCALE_INV
         % this.MONITOR_SCALE
         % @return {double 1x1}
-        getFloatValueFromString(this, u8Ch, cProp)
+        % getFloatValueFromString(this, u8Ch, cProp)
         
         % @param {uint32) u32Num - number of samples @ 24us clock
         % @return {int32 2 x u32Num} - wavetable values in [-2^20/2, +2^20/2]
@@ -63,14 +63,14 @@ classdef AbstractLC400 < handle
         % this.DIGITAL_OFFSET
         % this.MONITOR_OFFSET
         % @return {double 1x1}
-        getIntValueFromString(this, u8Ch, cProp)
+        % getIntValueFromString(this, u8Ch, cProp)
         
         % @param {uint8 1x1} channel
         % @param {char 1x1} supported values
         % this.GAIN_PROPORTIONAL
         % this.GAIN_INTEGRAL
         % this.GAIN_DIFFERENTIAL
-        setGain(this, u8Ch, cProp, dVal)
+        % setGain(this, u8Ch, cProp, dVal)
         
         % @param {uint8 1x1} channel 
         % @param {int32 1xm} 20-bit values
@@ -112,7 +112,7 @@ classdef AbstractLC400 < handle
         % needs to be scaled by the inverse of the digital scale factor
         % to convert back to real world units.  The sensor output
         % register already has the inverse digital scale factor applied.
-        recordRaw(this, u32Num)
+        % recordRaw(this, u32Num)
         
         % See recordRaw().  Difference here is returned values are {double}
         % and are mechanical tilt of stage in radians. 

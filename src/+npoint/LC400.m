@@ -139,6 +139,13 @@ classdef LC400 < npoint.AbstractLC400
         dTimeoutSeconds = 1;
        
     end
+    properties (Access = private)
+        
+        % {logical 1x1} true whend doing a long read. Causes other read
+        % commands to not communicate with hardware and return bogus value
+        lBusy = false
+        
+    end
     
     methods 
         
@@ -155,242 +162,67 @@ classdef LC400 < npoint.AbstractLC400
                 end
             end
             
-        end
-        
-        % Return the base address of a channel
-        % @param {uint8 1x1} u8Ch - channel
-        % @return {char 1x8} 8-char hex string  (32-bit)
-        function c = getBaseAddr(this, u8Ch)
-            switch u8Ch
-                case 1
-                    c = this.addrCh1Base;
-                case 2
-                    c = this.addrCh2Base;
-            end
+            this.init();
+            this.connect();
             
         end
-        
-        % Return the base wavetable address of a channel
-        % @param {uint8 1x1} u8Ch - channel
-        % @return {char 1x8} 8-char hex string  (32-bit)
-        function c = getBaseWaveAddr(this, u8Ch)
-            switch u8Ch
-                case 1
-                    c = this.addrCh1WavetableBase;
-                case 2
-                    c = this.addrCh2WavetableBase;
-            end
-            
-        end
-
-        
-        function init(this)
-            
-            switch this.cConnection
-                case this.cCONNECTION_RS232
-                    this.s = serial(this.cPort);    
-                    st = get(this.s,'Status');
-                    % cannot open a port a second time
-                    if(st(1) == 'o')
-                        fclose(this.s);
-                    end
-
-                    this.s.BaudRate = this.u16BaudRate;
-                    this.s.InputBufferSize = this.u16InputBufferSize;
-                    this.s.OutputBufferSize = this.u16OutputBufferSize;
-                case this.cCONNECTION_TCPIP
-                    
-                    
-                    this.s = tcpip(this.cTcpipHost, this.u16TcpipPort);
-                    % this.s.BaudRate = this.u16BaudRate;
-                    this.s.InputBufferSize = this.u16InputBufferSize;
-                    this.s.OutputBufferSize = this.u16OutputBufferSize;
-                    
-                    % Don't use Nagle's algorithm; send data
-                    % immediately to the newtork
-                    this.s.TransferDelay = 'off';
-                   
-                case this.cCONNECTION_TCPCLIENT
-                    
-                    this.s = tcpclient(this.cTcpipHost, this.u16TcpipPort, ...
-                        'Timeout', this.dTimeoutSeconds ...
-                    );
-                    
-            end
-        end
-        
-        function clearBytesAvailable(this)
-            
-            % This doesn't alway work.  I've found that if I overfill the
-            % input buffer, call this method, then do a subsequent read,
-            % the results come back all with -1.6050e9.  Need to figure
-            % this out
-            
-            this.msg('clearBytesAvailable()');
-            
-            while this.s.BytesAvailable > 0
-                cMsg = sprintf(...
-                    'clearBytesAvailable() clearing %1.0f bytes', ...
-                    this.s.BytesAvailable ...
-                );
-                this.msg(cMsg);
-                this.read()
                 
-            end
-        end
-        
-        function connect(this)
-            
-            switch this.cConnection
-                case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
-                    this.msg('connect()');
-                    try
-                        fopen(this.s); 
-                    catch ME
-
-                    end
-
-                    this.clearBytesAvailable();
-                case this.cCONNECTION_TCPCLIENT
-                    % do nothing
-            end
-        end
-        
-        function disconnect(this)
-            
-            switch this.cConnection
-                case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
-                    this.msg('disconnect()');
-                    try
-                        fclose(this.s);
-                    catch ME
-                    end
-                 case this.cCONNECTION_TCPCLIENT
-                    % do nothing
-            end
-                    
-        end
-        
-        function delete(this)
-            this.msg('delete() calling disconnect()');
-            this.disconnect();
-        end
-        
-        
-        function d = getInverseDigitalScaleFactor(this, u8Ch)
-                       
-           import hex.HexUtils
-           cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetInverseDigitalScaleFactor );
-           d = this.readSingle(cAddr, 'float');
-            
-        end
-        
-        
-        % @param {uint8 1x1} channel
-        function l = getWavetableEnable(this, u8Ch)
-            import hex.HexUtils
-            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable);
-            try
-                l = logical(this.readSingle(cAddr, 'uint32'));
-            catch mE
-                fprintf('npoint.LC400.getWavetableEnable() caught: %s\n', mE.message);
-                l = false;
-            end
-        end
-        
         % @param {uint8 1x1} channel
         function l = getWavetableActive(this, u8Ch)
+            
+            if this.lBusy
+                l = false;
+                return;
+            end
+            
             import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive);
             try
                 l = logical(this.readSingle(cAddr, 'uint32'));
             catch mE
-                fprintf('npoint.LC400.getWavetableActive() caught: %s\n', mE.message);
+                 % Will crash the app, but gives lovely stack trace.
+                 error(getReport(mE));
+                % fprintf('npoint.LC400.getWavetableActive() caught: %s\n', mE.message);
                 l = false;
             end
 
         end
         
-        % @param {uint8 1x1} u8Ch - channel
-        % @param {char 1x1} cProp - PID property. Supported values
-        % this.GAIN_PROPORTIONAL
-        % this.GAIN_INTEGRAL
-        % this.GAIN_DIFFERENTIAL
-        function d = getGain(this, u8Ch, cProp) 
-            import hex.HexUtils
-            switch cProp
-                case this.GAIN_PROPORTIONAL
-                    cOffset = this.offsetProportionalGain;
-                case this.GAIN_INTEGRAL
-                    cOffset = this.offsetIntegralGain;
-                case this.GAIN_DIFFERENTIAL
-                    cOffset = this.offsetDifferentialGain;
-            end
-            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cOffset);
-            d = this.readSingle(cAddr, 'float');
-        end
+        % See recordRaw().  Difference here is returned values are {double}
+        % and are mechanical tilt of stage in real units (um, mrad, etc). 
+        %
+        % Need to cast i32 returned from Java as a double before the
+        % multiplication because in matlab when you multipley i32 by a
+        % double it stays an i32 and since the return will be between
+        % -10 and 10 it would only be integers
+        %
+        % 2013.08.27 adding the digital scale factor, which is the ratio
+        % between the open loop range of the stage and the closed loop
+        % range.  When you record data from the 'input' register, it
+        % needs to be scaled by the inverse of the digital scale factor
+        % to convert back to real world units.  The sensor output
+        % register already has the inverse digital scale factor applied.
+        %
+        % @param {uint32) u32Num - number of samples @ 24us clock
+        % @return {double 4 x u32Num} dData - tilt of stage in radians
         
-        % @param {uint8 1x1} channel
-        function l = getServoState(this, u8Ch)
-            l = true;
-        end
-        
-        % @param {uint8 1x1} channel
-        % @param {char 1xm} cProp - supported values:
-        % this.ANALOG_SCALE
-        % this.DIGITAL_SCALE
-        % this.DIGITAL_SCALE_INV
-        % this.MONITOR_SCALE
-        function d = getFloatValueFromString(this, u8Ch, cProp)
+        function d = record(this, u32Num)
             
-            import hex.HexUtils
-            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cHexOffset);
-            d = this.readSingle(cAddr, 'f');
-        end
-        
-        % @param {uint8 1x1} channel
-        % @param {char 1xm} supported values:
-        % this.ANALOG_OFFSET
-        % this.DIGITAL_OFFSET
-        % this.MONITOR_OFFSET
-        function i32 = getIntValueFromString(this, u8Ch, cProp)
-            i32 = int32(0);
-        end
-        
-        
-        function i20 = getWavetables(this, u32Num)
+            this.lBusy = true;
+            i32Raw = this.recordRaw(u32Num);
+            this.lBusy = false;
             
-            i20Ch1 = this.readArrayLong(this.addrCh1WavetableBase, u32Num, 'int32');
-            i20Ch2 = this.readArrayLong(this.addrCh2WavetableBase, u32Num, 'int32');
+            dRaw = double(i32Raw);
+            max(dRaw(1, :))
+            min(dRaw(1, :))
+            dMax = (2^20 - 2)/2;
+            dRelative = dRaw / dMax;
+            d = dRelative ; % * double(this.getRange(1)) convert to radians
             
-            i20 = zeros(2, u32Num);
-            i20(1, :) = i20Ch1;
-            i20(2, :) = i20Ch2;
-            
-        end
-        
-        
-        % @param {uint8 1x1} channel
-        % @return {double 1x1} - the range of the stage.  The range
-        % parameter can be used to convert from microns to 20 bit counts
-        % (the controller uses 20 bit digitized values rather than distance
-        % units for internal calculations).  For example if the range is
-        % 277 microns: 1,048,575 20 bit counts divided by 277 = 3,785.47
-        % "counts per micron".
-        function d = getRange(this, u8Ch)
-            import hex.HexUtils
-            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetRange)
-            d = this.readSingle(cAddr, 'uint32');
-        end
-        
-        
-        % @param {uint8 1x1} channel
-        % @param {char 1x1} supported values
-        % this.GAIN_PROPORTIONAL
-        % this.GAIN_INTEGRAL
-        % this.GAIN_DIFFERENTIAL
-        function setGain(this, u8Ch, cProp, dVal)
-        
+            % Channel 1 and 2 command signals need to be scaled by inverse
+            % of the digital scale factor.
+            d(1, :) = d(1, :) * this.getInverseDigitalScaleFactor(uint8(1));
+            d(3, :) = d(3, :) * this.getInverseDigitalScaleFactor(uint8(2));
         end
         
         % @param {uint8 1x1} channel 
@@ -417,6 +249,29 @@ classdef LC400 < npoint.AbstractLC400
         
         end
         
+        function i20 = getWavetables(this, u32Num)
+            
+            if this.lBusy
+                i20 = zeros(2, u32Num);
+                return;
+            end
+                
+            this.lBusy = true;
+            
+            i20Ch1 = this.readArrayLong(this.addrCh1WavetableBase, u32Num, 'int32');
+            i20Ch2 = this.readArrayLong(this.addrCh2WavetableBase, u32Num, 'int32');
+            
+            this.lBusy = false;
+            
+            i20 = zeros(2, u32Num);
+            
+            i20(1, :) = i20Ch1;
+            i20(2, :) = i20Ch2;
+            
+            
+            
+        end
+        
         % @param {uint8 1x1} channel
         % @param {logical 1x1} 
         function setWavetableEnable(this, u8Ch, l)
@@ -425,13 +280,6 @@ classdef LC400 < npoint.AbstractLC400
             this.writeSingle(cAddr, uint8(l));
         end
         
-        % @param {uint8 1x1} channel
-        % @param {logical 1x1} 
-        function setWavetableActive(this, u8Ch, l)
-            import hex.HexUtils
-            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive);
-            this.writeSingle(cAddr, uint8(l));
-        end
         
         % Enable/disable both channels simultaneously
         % @param {logical 1x1} true to enable
@@ -482,7 +330,7 @@ classdef LC400 < npoint.AbstractLC400
 
             cDataHex = [...
                 cCmdHex cAddr1HexLE cValHexLE cStopHex ...
-                cCmdHex cAddr2HexLE cValHexLE cStopHex]
+                cCmdHex cAddr2HexLE cValHexLE cStopHex];
 
             % Convert to a column list of hex bytes
             % 1-byte start
@@ -500,10 +348,283 @@ classdef LC400 < npoint.AbstractLC400
             
             this.write(dDataInt);
             
+        end
+        
+    end
+    
+    methods (Access = protected)
+        
+        
+        function init(this)
             
+            switch this.cConnection
+                case this.cCONNECTION_RS232
+                    this.s = serial(this.cPort);    
+                    st = get(this.s,'Status');
+                    % cannot open a port a second time
+                    if(st(1) == 'o')
+                        fclose(this.s);
+                    end
+
+                    this.s.BaudRate = this.u16BaudRate;
+                    this.s.InputBufferSize = this.u16InputBufferSize;
+                    this.s.OutputBufferSize = this.u16OutputBufferSize;
+                case this.cCONNECTION_TCPIP
                     
+                    
+                    this.s = tcpip(this.cTcpipHost, this.u16TcpipPort);
+                    % this.s.BaudRate = this.u16BaudRate;
+                    this.s.InputBufferSize = this.u16InputBufferSize;
+                    this.s.OutputBufferSize = this.u16OutputBufferSize;
+                    
+                    % Don't use Nagle's algorithm; send data
+                    % immediately to the newtork
+                    this.s.TransferDelay = 'off';
+                   
+                case this.cCONNECTION_TCPCLIENT
+                    
+                    this.s = tcpclient(this.cTcpipHost, this.u16TcpipPort, ...
+                        'Timeout', this.dTimeoutSeconds ...
+                    );
+                    
+            end
+        end
+        
+        
+        % Return the base address of a channel
+        % @param {uint8 1x1} u8Ch - channel
+        % @return {char 1x8} 8-char hex string  (32-bit)
+        function c = getBaseAddr(this, u8Ch)
+            switch u8Ch
+                case 1
+                    c = this.addrCh1Base;
+                case 2
+                    c = this.addrCh2Base;
+            end
+            
+        end
+        
+        % Return the base wavetable address of a channel
+        % @param {uint8 1x1} u8Ch - channel
+        % @return {char 1x8} 8-char hex string  (32-bit)
+        function c = getBaseWaveAddr(this, u8Ch)
+            switch u8Ch
+                case 1
+                    c = this.addrCh1WavetableBase;
+                case 2
+                    c = this.addrCh2WavetableBase;
+            end
+            
+        end
+
+        
+        
+        
+        function clearBytesAvailable(this)
+            
+            % This doesn't alway work.  I've found that if I overfill the
+            % input buffer, call this method, then do a subsequent read,
+            % the results come back all with -1.6050e9.  Need to figure
+            % this out
+            
+            this.msg('clearBytesAvailable()');
+            
+            while this.s.BytesAvailable > 0
+                cMsg = sprintf(...
+                    'clearBytesAvailable() clearing %1.0f bytes', ...
+                    this.s.BytesAvailable ...
+                );
+                this.msg(cMsg);
+                this.read()
+                
+            end
+        end
+        
+        function connect(this)
+            
+            switch this.cConnection
+                case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
+                    this.msg('connect()');
+                    try
+                        fopen(this.s); 
+                    catch ME
+                        
+                         % Will crash the app, but gives lovely stack trace.
+                        error(getReport(mE));
+
+                    end
+
+                    
+                case this.cCONNECTION_TCPCLIENT
+                    % do nothing
+            end
+            
+            this.clearBytesAvailable();
+        end
+        
+        function disconnect(this)
+            
+            switch this.cConnection
+                case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
+                    this.msg('disconnect()');
+                    try
+                        fclose(this.s);
+                    catch ME
+                         % Will crash the app, but gives lovely stack trace.
+                         error(getReport(mE));
+                    end
+                 case this.cCONNECTION_TCPCLIENT
+                    % do nothing
+            end
+                    
+        end
+        
+        function delete(this)
+            this.msg('delete() calling disconnect()');
+            this.disconnect();
+        end
+        
+        
+        function d = getInverseDigitalScaleFactor(this, u8Ch)
+           
+           if this.lBusy
+               d = 1;
+               return;
+           end
+           
+           import hex.HexUtils
+           cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetInverseDigitalScaleFactor );
+           d = this.readSingle(cAddr, 'float');
+            
+        end
+        
+        
+        % @param {uint8 1x1} channel
+        function l = getWavetableEnable(this, u8Ch)
+            
+            if this.lBusy
+                l = false;
+                return;
+            end
+            
+            import hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable);
+            try
+                l = logical(this.readSingle(cAddr, 'uint32'));
+            catch mE
+                 % Will crash the app, but gives lovely stack trace.
+                 error(getReport(mE));
+                % fprintf('npoint.LC400.getWavetableEnable() caught: %s\n', mE.message);
+                l = false;
+            end
+        end
+        
+        
+        
+        % @param {uint8 1x1} u8Ch - channel
+        % @param {char 1x1} cProp - PID property. Supported values
+        % this.GAIN_PROPORTIONAL
+        % this.GAIN_INTEGRAL
+        % this.GAIN_DIFFERENTIAL
+        function d = getGain(this, u8Ch, cProp)
+            
+            if this.lBusy
+                d = 0;
+                return;
+            end
+            
+            
+            import hex.HexUtils
+            switch cProp
+                case this.GAIN_PROPORTIONAL
+                    cOffset = this.offsetProportionalGain;
+                case this.GAIN_INTEGRAL
+                    cOffset = this.offsetIntegralGain;
+                case this.GAIN_DIFFERENTIAL
+                    cOffset = this.offsetDifferentialGain;
+            end
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cOffset);
+            d = this.readSingle(cAddr, 'float');
+            
+        end
+        
+        % @param {uint8 1x1} channel
+        function l = getServoState(this, u8Ch)
+            l = true;
+        end
+        
+        % @param {uint8 1x1} channel
+        % @param {char 1xm} cProp - supported values:
+        % this.ANALOG_SCALE
+        % this.DIGITAL_SCALE
+        % this.DIGITAL_SCALE_INV
+        % this.MONITOR_SCALE
+        function d = getFloatValueFromString(this, u8Ch, cProp)
+            
+            if this.lBusy
+                d = 0;
+                return;
+            end
+            
+            import hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cHexOffset);
+            d = this.readSingle(cAddr, 'f');
+        end
+        
+        % @param {uint8 1x1} channel
+        % @param {char 1xm} supported values:
+        % this.ANALOG_OFFSET
+        % this.DIGITAL_OFFSET
+        % this.MONITOR_OFFSET
+        function i32 = getIntValueFromString(this, u8Ch, cProp)
+            i32 = int32(0);
+        end
+        
+        
+        
+        
+        
+        % @param {uint8 1x1} channel
+        % @return {double 1x1} - the range of the stage.  The range
+        % parameter can be used to convert from microns to 20 bit counts
+        % (the controller uses 20 bit digitized values rather than distance
+        % units for internal calculations).  For example if the range is
+        % 277 microns: 1,048,575 20 bit counts divided by 277 = 3,785.47
+        % "counts per micron".
+        function d = getRange(this, u8Ch)
+            
+            if this.lBusy
+                d = 0;
+                return;
+            end
+            import hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetRange);
+            d = this.readSingle(cAddr, 'uint32');
+        end
+        
+        
+        % @param {uint8 1x1} channel
+        % @param {char 1x1} supported values
+        % this.GAIN_PROPORTIONAL
+        % this.GAIN_INTEGRAL
+        % this.GAIN_DIFFERENTIAL
+        function setGain(this, u8Ch, cProp, dVal)
         
         end
+        
+        
+        
+        
+        
+        % @param {uint8 1x1} channel
+        % @param {logical 1x1} 
+        function setWavetableActive(this, u8Ch, l)
+            import hex.HexUtils
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive);
+            this.writeSingle(cAddr, uint8(l));
+        end
+        
+        
         
         % Record ch1 and ch2 command value and sensor value for a specified
         % number of clock cycles.  The clock is 24 us (one sample per 24 us).
@@ -524,6 +645,8 @@ classdef LC400 < npoint.AbstractLC400
         
         
         function i32 = recordRaw(this, u32Num)
+            
+            
             
             import hex.HexUtils
             
@@ -618,6 +741,7 @@ classdef LC400 < npoint.AbstractLC400
             i32(2, :) = i32Ch1Sensor;
             i32(3, :) = i32Ch2Command; % ch 2 command
             i32(4, :) = i32Ch2Sensor;
+            
         end
         
         function waitForRecordingComplete(this)
@@ -639,39 +763,7 @@ classdef LC400 < npoint.AbstractLC400
             
         end
         
-        % See recordRaw().  Difference here is returned values are {double}
-        % and are mechanical tilt of stage in real units (um, mrad, etc). 
-        %
-        % Need to cast i32 returned from Java as a double before the
-        % multiplication because in matlab when you multipley i32 by a
-        % double it stays an i32 and since the return will be between
-        % -10 and 10 it would only be integers
-        %
-        % 2013.08.27 adding the digital scale factor, which is the ratio
-        % between the open loop range of the stage and the closed loop
-        % range.  When you record data from the 'input' register, it
-        % needs to be scaled by the inverse of the digital scale factor
-        % to convert back to real world units.  The sensor output
-        % register already has the inverse digital scale factor applied.
-        %
-        % @param {uint32) u32Num - number of samples @ 24us clock
-        % @return {double 4 x u32Num} dData - tilt of stage in radians
         
-        function d = record(this, u32Num)
-            
-            i32Raw = this.recordRaw(u32Num);
-            dRaw = double(i32Raw);
-            max(dRaw(1, :))
-            min(dRaw(1, :))
-            dMax = (2^20 - 2)/2;
-            dRelative = dRaw / dMax;
-            d = dRelative ; % * double(this.getRange(1)) convert to radians
-            
-            % Channel 1 and 2 command signals need to be scaled by inverse
-            % of the digital scale factor.
-            d(1, :) = d(1, :) * this.getInverseDigitalScaleFactor(uint8(1));
-            d(3, :) = d(3, :) * this.getInverseDigitalScaleFactor(uint8(2));
-        end
         
         
         % Reads a list of addresses.  It works by looping through each
@@ -1669,11 +1761,7 @@ classdef LC400 < npoint.AbstractLC400
                 
         end
         
-        
-
-    end
-    
-    methods (Access = protected)
+         
         
         function l = hasProp(this, c)
             
