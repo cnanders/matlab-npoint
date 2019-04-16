@@ -166,6 +166,11 @@ classdef LC400 < npoint.AbstractLC400
             this.connect();
             
         end
+        
+         function delete(this)
+            this.msg('delete() calling disconnect()');
+            this.disconnect();
+        end
                 
         % @param {uint8 1x1} channel
         function l = getWavetableActive(this, u8Ch)
@@ -177,14 +182,20 @@ classdef LC400 < npoint.AbstractLC400
             
             import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableActive);
+            
             try
-                l = logical(this.readSingle(cAddr, 'uint32'));
-            catch mE
-                 % Will crash the app, but gives lovely stack trace.
-                 error(getReport(mE));
-                % fprintf('npoint.LC400.getWavetableActive() caught: %s\n', mE.message);
+            [u32, lSuccess] = this.readSingle(cAddr, 'uint32');
+            if ~lSuccess
                 l = false;
+            else
+                l = logical(u32);
             end
+            
+            catch mE
+                l = false;
+                fprintf('npoint.LC400.getWavetableActive readSingle problem\n');
+            end
+            
 
         end
         
@@ -357,6 +368,7 @@ classdef LC400 < npoint.AbstractLC400
         
         function init(this)
             
+            fprintf('npoint.LC400.init() \n');
             switch this.cConnection
                 case this.cCONNECTION_RS232
                     this.s = serial(this.cPort);    
@@ -422,6 +434,7 @@ classdef LC400 < npoint.AbstractLC400
         
         function clearBytesAvailable(this)
             
+            this.lBusy = true;
             % This doesn't alway work.  I've found that if I overfill the
             % input buffer, call this method, then do a subsequent read,
             % the results come back all with -1.6050e9.  Need to figure
@@ -438,10 +451,13 @@ classdef LC400 < npoint.AbstractLC400
                 this.read()
                 
             end
+            
+            this.lBusy = false;
         end
         
         function connect(this)
             
+            fprintf('npoint.LC400.connect() \n');
             switch this.cConnection
                 case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
                     this.msg('connect()');
@@ -464,6 +480,7 @@ classdef LC400 < npoint.AbstractLC400
         
         function disconnect(this)
             
+            fprintf('npoint.LC400.disconnect()\n');
             switch this.cConnection
                 case {this.cCONNECTION_TCPIP, this.cCONNECTION_RS232}
                     this.msg('disconnect()');
@@ -475,17 +492,16 @@ classdef LC400 < npoint.AbstractLC400
                     end
                  case this.cCONNECTION_TCPCLIENT
                     % do nothing
+                    this.s = [];
             end
                     
         end
         
-        function delete(this)
-            this.msg('delete() calling disconnect()');
-            this.disconnect();
-        end
+       
         
         
         function d = getInverseDigitalScaleFactor(this, u8Ch)
+           
            
            if this.lBusy
                d = 1;
@@ -494,7 +510,11 @@ classdef LC400 < npoint.AbstractLC400
            
            import hex.HexUtils
            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetInverseDigitalScaleFactor );
-           d = this.readSingle(cAddr, 'float');
+           [d, lSuccess] = this.readSingle(cAddr, 'float');
+           
+           if ~lSuccess
+               d = 1;
+           end
             
         end
         
@@ -509,14 +529,13 @@ classdef LC400 < npoint.AbstractLC400
             
             import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEnable);
-            try
-                l = logical(this.readSingle(cAddr, 'uint32'));
-            catch mE
-                 % Will crash the app, but gives lovely stack trace.
-                 error(getReport(mE));
-                % fprintf('npoint.LC400.getWavetableEnable() caught: %s\n', mE.message);
+            [u32, lSuccess] = this.readSingle(cAddr, 'uint32');
+            if ~lSuccess
                 l = false;
+            else
+                l = logical(u32);
             end
+            
         end
         
         
@@ -544,7 +563,12 @@ classdef LC400 < npoint.AbstractLC400
                     cOffset = this.offsetDifferentialGain;
             end
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cOffset);
-            d = this.readSingle(cAddr, 'float');
+            [d, lSuccess] = this.readSingle(cAddr, 'float');
+            
+            if ~lSuccess
+                d = 0;
+            end
+            
             
         end
         
@@ -568,7 +592,12 @@ classdef LC400 < npoint.AbstractLC400
             
             import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), cHexOffset);
-            d = this.readSingle(cAddr, 'f');
+            [d, lSuccess] = this.readSingle(cAddr, 'f');
+            
+            if ~lSuccess
+                d = 0;
+            end
+            
         end
         
         % @param {uint8 1x1} channel
@@ -599,7 +628,11 @@ classdef LC400 < npoint.AbstractLC400
             end
             import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetRange);
-            d = this.readSingle(cAddr, 'uint32');
+            [d, lSuccess] = this.readSingle(cAddr, 'uint32');
+            
+            if ~lSuccess
+                d = 0;
+            end
         end
         
         
@@ -646,111 +679,121 @@ classdef LC400 < npoint.AbstractLC400
         
         function i32 = recordRaw(this, u32Num)
             
-            
+            % Default return
+            i32 = zeros(4, u32Num);
             
             import hex.HexUtils
             
-            % Set number of samples to record
-            this.writeSingle(...
-                this.addrNumSamplesToRecord, ...
-                u32Num ...
-            );
-                    
-            % Set record pointers
-            % Ch 1 command
-            this.writeSingle(...
-                this.addrRecordPointer1, ...
-                HexUtils.add(this.addrCh1Base, this.offsetControlLoopInput) ...
-            );
-            % Ch 1 sensor
-            this.writeSingle(...
-                this.addrRecordPointer2, ...
-                HexUtils.add(this.addrCh1Base, this.offsetDigitalSensorReading) ...
-            );
-        
-            % Ch 2 command
-            this.writeSingle(...
-                this.addrRecordPointer3, ...
-                HexUtils.add(this.addrCh2Base, this.offsetControlLoopInput) ...
-            );
-            % Ch 2 sensor
-            this.writeSingle(...
-                this.addrRecordPointer4, ...
-                HexUtils.add(this.addrCh2Base, this.offsetDigitalSensorReading) ...
-            ); 
-      
+            try
+                % Set number of samples to record
+                this.writeSingle(...
+                    this.addrNumSamplesToRecord, ...
+                    u32Num ...
+                );
+
+                % Set record pointers
+                % Ch 1 command
+                this.writeSingle(...
+                    this.addrRecordPointer1, ...
+                    HexUtils.add(this.addrCh1Base, this.offsetControlLoopInput) ...
+                );
+                % Ch 1 sensor
+                this.writeSingle(...
+                    this.addrRecordPointer2, ...
+                    HexUtils.add(this.addrCh1Base, this.offsetDigitalSensorReading) ...
+                );
+
+                % Ch 2 command
+                this.writeSingle(...
+                    this.addrRecordPointer3, ...
+                    HexUtils.add(this.addrCh2Base, this.offsetControlLoopInput) ...
+                );
+                % Ch 2 sensor
+                this.writeSingle(...
+                    this.addrRecordPointer4, ...
+                    HexUtils.add(this.addrCh2Base, this.offsetDigitalSensorReading) ...
+                ); 
+
+
+                % Set number of clock cycles per sample.  When you set this to
+                % 1, you get every sample.  If you set it to two, you grab
+                % every other, etc.  This is a way to downsample, if desired.
+                % Not going to implmeent it here.
+
+                this.writeSingle(...
+                    this.addrRecordingDivisor, ...
+                    uint8(1) ...
+                );
+
+                % Start the recording 
+                this.writeSingle(...
+                    this.addrStartRecording, ...
+                    uint8(1) ...
+                );
+
+                this.waitForRecordingComplete();
+
+                % Read the record buffers
+
+                i32Ch1Command = this.readArrayLong(...
+                    this.addrRecordBuffer1, ...
+                    u32Num, ...
+                    'int32' ...
+                );
+
+                i32Ch1Sensor = this.readArrayLong(...
+                    this.addrRecordBuffer2, ...
+                    u32Num, ...
+                    'int32' ...
+                );
+
+                i32Ch2Command = this.readArrayLong(...
+                    this.addrRecordBuffer3, ...
+                    u32Num, ...
+                    'int32' ...
+                );
+                i32Ch2Sensor = this.readArrayLong(...
+                    this.addrRecordBuffer4, ...
+                    u32Num, ...
+                    'int32' ...
+                );
+
+
+                % i32Ch1Command = this.readArrayLong(this.getBaseWaveAddr(1), u32Num, 'int20');
+                % i32Ch2Command = this.readArrayLong(this.getBaseWaveAddr(2), u32Num, 'int20');
+
+                % Int values > 2^19 represent negative stage position.  
+                % (Two's complement for 20-bit)
+                % Largest negative stage position represented by 2^19 + 1
+
+                %{
+                idx = find(d > 2^19);
+                d(idx) = -(2^19 - d(idx));
+                %}
+
+                
+                i32(1, :) = i32Ch1Command; % ch 1 command
+                i32(2, :) = i32Ch1Sensor;
+                i32(3, :) = i32Ch2Command; % ch 2 command
+                i32(4, :) = i32Ch2Sensor;
+            catch mE
+                
+            end
             
-            % Set number of clock cycles per sample.  When you set this to
-            % 1, you get every sample.  If you set it to two, you grab
-            % every other, etc.  This is a way to downsample, if desired.
-            % Not going to implmeent it here.
-            
-            this.writeSingle(...
-                this.addrRecordingDivisor, ...
-                uint8(1) ...
-            );
-        
-            % Start the recording 
-            this.writeSingle(...
-                this.addrStartRecording, ...
-                uint8(1) ...
-            );
-            
-            this.waitForRecordingComplete();
-                        
-            % Read the record buffers
-            
-            i32Ch1Command = this.readArrayLong(...
-                this.addrRecordBuffer1, ...
-                u32Num, ...
-                'int32' ...
-            );
-        
-            i32Ch1Sensor = this.readArrayLong(...
-                this.addrRecordBuffer2, ...
-                u32Num, ...
-                'int32' ...
-            );
-        
-            i32Ch2Command = this.readArrayLong(...
-                this.addrRecordBuffer3, ...
-                u32Num, ...
-                'int32' ...
-            );
-            i32Ch2Sensor = this.readArrayLong(...
-                this.addrRecordBuffer4, ...
-                u32Num, ...
-                'int32' ...
-            );
-        
-            
-            % i32Ch1Command = this.readArrayLong(this.getBaseWaveAddr(1), u32Num, 'int20');
-            % i32Ch2Command = this.readArrayLong(this.getBaseWaveAddr(2), u32Num, 'int20');
-            
-            % Int values > 2^19 represent negative stage position.  
-            % (Two's complement for 20-bit)
-            % Largest negative stage position represented by 2^19 + 1
-            
-            %{
-            idx = find(d > 2^19);
-            d(idx) = -(2^19 - d(idx));
-            %}
-            
-            i32 = zeros(4, u32Num);
-            i32(1, :) = i32Ch1Command; % ch 1 command
-            i32(2, :) = i32Ch1Sensor;
-            i32(3, :) = i32Ch2Command; % ch 2 command
-            i32(4, :) = i32Ch2Sensor;
+                
+                
             
         end
         
         function waitForRecordingComplete(this)
                     
+            u32Recording = 1;
             
-            while   this.readSingle(...
+            while  u32Recording ~= 0 
+                [u32Recording, lSuccess] = this.readSingle(...
                         this.addrStartRecording, ...
                         'uint32' ...
-                    ) ~= 0
+                    );
                 % Still recording ...
                 
             end
@@ -788,7 +831,7 @@ classdef LC400 < npoint.AbstractLC400
         % @param {char 1xm} type (see top of class)
 
 
-        function str = readSingle(this, addr, type)
+        function [str, lSuccess] = readSingle(this, addr, type)
        
             [m,n] = size(addr);
             
@@ -839,14 +882,21 @@ classdef LC400 < npoint.AbstractLC400
             % for the serial to see the expected BytesAvailable
             
             dBytesExpected = m * 10;
-            this.waitForBytesExpected(dBytesExpected);
+            lSuccess = this.waitForBytesExpected(dBytesExpected);
+            
+            if ~lSuccess
+                str = '';
+                return;
+            end
             
             dResponse = this.read();
             str = this.unpackMultiSinglefread(dResponse, m, type);
             
         end
         
-        function waitForBytesExpected(this, dBytesExpected)
+        % Returns true if expected number of bytes showed up in
+        % BytesAvailable before the timeout, false otherwise
+        function lSuccess = waitForBytesExpected(this, dBytesExpected)
             
             if this.lShowWaitingForBytes
                 cMsg = sprintf(...
@@ -856,6 +906,7 @@ classdef LC400 < npoint.AbstractLC400
                 this.msg(cMsg);
             end
             
+            % Reset so can track time waiting in the while loop
             tic
             
             while this.s.BytesAvailable < dBytesExpected
@@ -875,9 +926,21 @@ classdef LC400 < npoint.AbstractLC400
                         this.dTimeout, ...
                         dBytesExpected ...
                     );
-                    error(cMsg);
+                    % error(cMsg);
+                    lSuccess = false; 
+                    return;
                 end
+                
+                % pause(0.1);
             end
+            
+            cMsg = sprintf(...
+                'Waited %1.0 ms for %1.0f of %1.0f expected bytes', ...
+                toc & 1000, ...
+                dBytesExpected ...
+            );
+            this.msg(cMsg);
+            lSuccess = true;
             
         end
         
@@ -886,7 +949,11 @@ classdef LC400 < npoint.AbstractLC400
         % @param {uint32 1x1} u32Num - number of reads
         % @param {cType 1x1} cType - all data must be same type
 
-        function d = readArray(this, cAddrHex32, u32Num, cType)
+        function [d, lSuccess] = readArray(this, cAddrHex32, u32Num, cType)
+            
+            
+            % Default return
+            d = zeros(1, u32Num);
             
             import hex.HexUtils
             
@@ -922,7 +989,11 @@ classdef LC400 < npoint.AbstractLC400
             % Wait for expected number of bytes to be available
             dBytesExpected = 1 + 4 + 4 * u32Num + 1;
             
-            this.waitForBytesExpected(dBytesExpected);
+            lSuccess = this.waitForBytesExpected(dBytesExpected);
+            
+            if ~lSuccess
+                return;
+            end
             
             % Read the result
             tic
@@ -940,6 +1011,8 @@ classdef LC400 < npoint.AbstractLC400
             dTimeElapsed = toc;
             cMsg = sprintf('readArray() unpack elapsed time: %1.1f ms', dTimeElapsed * 1000);
             % this.msg(cMsg);
+            
+            lSuccess = true;
             
         end
         
@@ -1381,59 +1454,7 @@ classdef LC400 < npoint.AbstractLC400
         end
         
         
-        %{
-        function writeSingle(this, addr, values, types)
         
-            import ieee.IeeeUtils
-            % write to a DSP address
-            v2 = [];
-            [m,n] = size(addr);
-            for j = 1:m
-                
-                if (types(j) == 'f')     
-                    % passsed in float (single precision, 32-bit), 
-                    % Need to convert it to IEEE 32 hexadecimal
-                    v = IeeeUtils.numToHex32(values(j));
-                elseif (types(j) == 'h') 
-                    % passed in hex - no conversion needed
-                    v = values(j,:);
-                elseif (types(j) == 'i') 
-                    % passed in signed int - convert to hex
-                    v = values(j);
-                    if v < 0
-                        v = (2^32 + v);
-                    end
-                    v = dec2hex(v,8);
-                end
-                
-                % Create command string
-                
-                cmdstr = ['A2' addr(j,:) v '55'];
-               
-                % -- reorder the bytes -- 
-                % convert 32-bit hex address and hex value to little endian
-                % by reordering the bytes
-                
-                cmdstr = cmdstr([1 2 9 10 7 8 5 6 3 4 17 18 15 16 13 14 11 12 19 20]);
-                
-                % Convert to a column list of 10 hex bytes
-                % 1-byte start
-                % 4-bytes address litte endian
-                % 4-bytes value little endian
-                % 1-byte end
-                L = length(cmdstr);
-                c = reshape(cmdstr,2,L/2)';
-                
-                % Convert each hex byte to a decimal byte
-                d = hex2dec(c)
-                
-                return
-                
-                this.write(d);    
-                
-            end
-        end
-        %}
         
         
         
@@ -1482,6 +1503,10 @@ classdef LC400 < npoint.AbstractLC400
             
             import hex.HexUtils
             
+            % Default return
+            d = zeros(1, u32Num);
+            
+            
             % Based on the size of the input buffer, there is a maximum
             % number of reads readArray can do and not overfill the input
             % buffer. 
@@ -1505,8 +1530,6 @@ classdef LC400 < npoint.AbstractLC400
             
             % if u32Num > maxReads perform ceil(u32Num/maxReads)
             % readArray() calls, appending
-            
-            d = zeros(1, u32Num);
             
             % Need to be careful here since we would be dividing an uint by
             % a double which keeps the type uint and would never get us the
@@ -1543,7 +1566,13 @@ classdef LC400 < npoint.AbstractLC400
                 cAddr = HexUtils.add(cAddrHex32, dec2hex(dAddrOffset));
                 
                 % Issue readArray
-                dResult = this.readArray(cAddr, dReads, cType);
+                [dResult, lSuccess] = this.readArray(cAddr, dReads, cType);
+                
+                if ~lSuccess
+                    % d is initialized to zeros so return that
+                    return
+                end
+                
                 d(dStart : dEnd) = dResult;
                 
             end
@@ -1551,33 +1580,7 @@ classdef LC400 < npoint.AbstractLC400
             
         end
         
-        %{
-        % Convert 32-bit hex string to desired output format.  Hex string
-        % can come in as IEEE32 format or big endian
-        %
-        % @param {char 1x8} cHex - 32-bit hex string
-        % @param {char 1x1} cDataType 
         
-        function d = hex32Convert(this, cHex, cType)
-            
-            import hex.HexUtils
-            import ieee.IeeeUtils
-            switch cType
-                case 'float' % The hex is a IEEE 32-bit hexadecimal format
-                    d = IeeeUtils.hex32ToNum(cHex);
-                case 'int32' % signed int.  The hex is big endian. Use hex2dec to con
-                    d = HexUtils.hex32ToInt(cHex);
-                    if (d > 2^31)
-                       d = -(2^32 - d);
-                    end
-                case 'uint32' % The hex is big endian.  Use hex2dec to con
-                    d = hex2dec(cHex);
-                case 'hex'
-                    d = cHex;
-            end 
-            
-        end
-        %}
         
         % Convert 32-bit hex string to desired representation based on its data type 
         % @param {char mx8} cHex - m-row x 8-col row-list of hex strings
@@ -1672,68 +1675,7 @@ classdef LC400 < npoint.AbstractLC400
             
         end
         
-        %{
-        % Convert a mixed-type value to its 32-bit hex representation.  
-        % xVal {mixed mx1} can be:
-        %   'float' {double 1x1}, 
-        %   'int32' {int32 1x1},
-        %   'int20' cast as {int32 1x1},
-        %   'uint32' {uint32 1x1}
-        %   'hex' {char 1x8}
-        % cType {char} 'float', 'int32', 'int20', 'uint32', 'hex'
-        
-        function cValHex = valToHex32(this, xVal, cType)
-            
-            import ieee.IeeeUtils
-            switch cType
-                case 'float'
-                    % Passsed in float (single precision, 32-bit), 
-                    % Need to convert it to IEEE 32 hex representation
-                    cValHex = IeeeUtils.numToHex32(xVal);
-                case 'uint32'
-                    % Unsigned 32-bit int, convert to 8-char hex string
-                    cValHex = dec2hex(xVal, 8);
-                case 'int20'
-                    % 20-bit signed int cast as {int32}
-                    % If value is negative, offset by 2^20 to get it into
-                    % [2^19 : 2^20] range. If type was {int20} (which
-                    % MATLAB doesn't support) before doing this, we would
-                    % need to cast as int32 or double or anything with enough
-                    % headroom to support the shift by 2^20.  Recall that
-                    % {int20} type doesn't support values > 2^19 - 1, which
-                    % is what we need to do
-
-                    dVal = double(xVal);
-                    if dVal < 0
-                        dVal = 2^20 + dVal;
-                    end
-                    cValHex = dec2hex(dVal, 8);
-                case 'int32'
-                    % 32-bit signed int.  If value is negative, offset
-                    % by 2^32 to get it into [2^31 : 2^32] range.  Before
-                    % doing this, need to cast as double so there is
-                    % headroom for the shift by 2^32 (if the type really is
-                    % {int32}, that type doesn't support values > 2^31 - 1,
-                    % which is what we need to do
-                    
-                    dVal = double(xVal);                    
-                    if dVal < 0
-                        dVal = 2^32 + dVal; 
-                    end
-                    cValHex = dec2hex(dVal, 8);
-                case 'hex'
-                    % Passed in hex, no conversion needed
-                    cValHex = xVal;
-                otherwise
-                    fprintf(...
-                        'valToHex32() UNSUPPORTED TYPE %s\n', ...
-                        cType ...
-                    );
-            end 
-            
-            
-        end
-        %}
+       
         
         
         
@@ -1743,6 +1685,12 @@ classdef LC400 < npoint.AbstractLC400
         
         
         function write(this, dData)
+            
+            if isempty(this.s)
+                this.init();
+                this.connect();
+            end
+            
             switch this.cConnection
                 case {this.cCONNECTION_RS232, this.cCONNECTION_TCPIP}
                      fwrite(this.s, dData);
@@ -1757,6 +1705,12 @@ classdef LC400 < npoint.AbstractLC400
                     dResponse = fread(this.s, this.s.BytesAvailable);
                 case this.cCONNECTION_TCPCLIENT
                     dResponse = read(this.s, this.s.BytesAvailable);
+                    
+%                     if ~isempty(error)
+%                         fprintf('+npoint.LC400 read error');
+%                         error
+%                     end
+                    
             end
                 
         end
