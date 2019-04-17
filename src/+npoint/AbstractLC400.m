@@ -122,6 +122,11 @@ classdef AbstractLC400 < handle
         record(this, u32Num)
         
         
+        delete(this)
+        
+        u32 = getEndIndexOfWavetable(this)
+        
+        
     end
     
 end
