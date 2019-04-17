@@ -41,6 +41,9 @@ classdef LC400Virtual < npoint.AbstractLC400
             this.i32Wavetable(2, :) = int32( 2^20 / 2 * cos(2 * pi * dFreq * dTime));
         end
         
+        function delete(this)
+            
+        end
         
         % @param {uint8 1x1} channel
         % @return {logical 1x1}

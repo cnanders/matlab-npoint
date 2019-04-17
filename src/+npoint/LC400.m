@@ -350,6 +350,12 @@ classdef LC400 < npoint.AbstractLC400
             
         end
         
+        function delete(this)
+            this.msg('delete() calling disconnect()');
+            this.disconnect();
+        end
+        
+        
     end
     
     methods (Access = protected)
@@ -479,10 +485,6 @@ classdef LC400 < npoint.AbstractLC400
                     
         end
         
-        function delete(this)
-            this.msg('delete() calling disconnect()');
-            this.disconnect();
-        end
         
         
         function d = getInverseDigitalScaleFactor(this, u8Ch)
