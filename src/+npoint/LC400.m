@@ -361,10 +361,7 @@ classdef LC400 < npoint.AbstractLC400
             
         end
         
-        function delete(this)
-            this.msg('delete() calling disconnect()');
-            this.disconnect();
-        end
+       
         
         
     end
