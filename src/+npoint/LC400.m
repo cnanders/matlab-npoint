@@ -260,6 +260,26 @@ classdef LC400 < npoint.AbstractLC400
         
         end
         
+        % @param {uint8 1x1} channel 
+        function u32 = getEndIndexOfWavetable(this, u8Ch)
+            u32 = 0; % default
+            
+            if this.lBusy
+                d = 0;
+                return;
+            end
+            
+           
+            cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEndIndex);
+            
+            [u32, lSuccess] = this.readSingle(cAddr, 'uint32');
+                
+            if ~lSuccess
+                u32 = 0;
+            end 
+        end
+        
+        
         function i20 = getWavetables(this, u32Num)
             
             if this.lBusy
@@ -278,9 +298,7 @@ classdef LC400 < npoint.AbstractLC400
             
             i20(1, :) = i20Ch1;
             i20(2, :) = i20Ch2;
-            
-            
-            
+                        
         end
         
         % @param {uint8 1x1} channel

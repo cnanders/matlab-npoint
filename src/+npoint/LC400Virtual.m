@@ -217,6 +217,12 @@ classdef LC400Virtual < npoint.AbstractLC400
             % d = dRel * 3e-3; % in [-3 mrad, +3 mrad]
         end
         
+            
+        function u32 = getEndIndexOfWavetable(this, u8Ch)
+            u32 = uint32(length(this.i32Wavetable(u8Ch, :)));
+        end
+
+            
         
     end
     
