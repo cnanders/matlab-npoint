@@ -37,8 +37,8 @@ classdef LC400Virtual < npoint.AbstractLC400
             dFreq = 5; % hz
             dTime = 0 : 24e-6 : 2;
             
-            this.i32Wavetable(1, :) = int32( 2^20 / 2 * sin(2 * pi * dFreq * dTime));
-            this.i32Wavetable(2, :) = int32( 2^20 / 2 * cos(2 * pi * dFreq * dTime));
+            this.i32Wavetable(1, :) = int32( 2^20 / 2 * 0.5 * sin(2 * pi * dFreq * dTime));
+            this.i32Wavetable(2, :) = int32( 2^20 / 2 * 0.5 * cos(2 * pi * dFreq * dTime));
         end
         
         function delete(this)
