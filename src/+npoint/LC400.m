@@ -265,11 +265,11 @@ classdef LC400 < npoint.AbstractLC400
             u32 = 0; % default
             
             if this.lBusy
-                d = 0;
+                u32 = 0;
                 return;
             end
             
-           
+            import hex.HexUtils
             cAddr = HexUtils.add(this.getBaseAddr(u8Ch), this.offsetWavetableEndIndex);
             
             [u32, lSuccess] = this.readSingle(cAddr, 'uint32');
