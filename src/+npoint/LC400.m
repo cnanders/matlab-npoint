@@ -638,7 +638,7 @@ classdef LC400 < npoint.AbstractLC400
         % @return {double 1x1} - the range of the stage.  The range
         % parameter can be used to convert from microns to 20 bit counts
         % (the controller uses 20 bit digitized values rather than distance
-        % units for internal calculations).  For example if the range is
+        % units for internal calculations).ï¿½ For example if the range is
         % 277 microns: 1,048,575 20 bit counts divided by 277 = 3,785.47
         % "counts per micron".
         function d = getRange(this, u8Ch)
@@ -820,7 +820,7 @@ classdef LC400 < npoint.AbstractLC400
             end
             
             % setInteger(Addresses.recordingDivisor, 0) 'set recording
-            % divisor for samples every 24 µsec - standard nPControl PC
+            % divisor for samples every 24 ï¿½sec - standard nPControl PC
             % software version 1.2.7 and earlier assumes 24 microsecond
             % interval
                 
